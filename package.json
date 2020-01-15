@@ -1,0 +1,43 @@
+{
+    "name": "node-api",
+    "version": "1.0.0",
+    "description": "This is node api",
+    "main": "index.js",
+    "directories": {
+        "test": "tests"
+    },
+    "scripts": {
+        "start": "node index.js",
+        "test": "jest --watchAll --verbose"
+    },
+    "keywords": [
+        ""
+    ],
+    "author": "Tulsi Ram Maurya",
+    "license": "ISC",
+    "dependencies": {
+        "bcrypt": "^3.0.5",
+        "config": "^3.0.1",
+        "express": "^4.16.4",
+        "express-async-errors": "^3.1.1",
+        "googleapis": "^43.0.0",
+        "helmet": "^3.16.0",
+        "joi": "^14.3.1",
+        "joi-objectid": "^2.0.0",
+        "jsonwebtoken": "^8.5.1",
+        "lodash": "^4.17.11",
+        "moment": "^2.24.0",
+        "mongoose": "^5.4.20",
+        "passport": "^0.4.0",
+        "passport-facebook": "^3.0.0",
+        "passport-facebook-token": "^3.3.0",
+        "passport-google-plus-token": "^2.1.0",
+        "socket.io": "^2.2.0",
+        "winston": "^3.2.1",
+        "winston-mongodb": "^5.0.0"
+    },
+    "devDependencies": {
+        "jest": "^24.5.0",
+        "supertest": "^4.0.2"
+    }
+}

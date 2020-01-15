@@ -1,0 +1,7 @@
+{
+    "JWTPrivateKey": "napi_JWTPrivateKey",
+    "FacebookClientId": "napi_FacebookClientId",
+    "FacebookClientSecret": "napi_FacebookClientSecret",
+    "GoogleClientId": "napi_GoogleClientId",
+    "GoogleClientSecret": "napi_GoogleClientSecret"
+}

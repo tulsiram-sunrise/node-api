@@ -1,0 +1,4 @@
+{
+    "db": "mongodb://localhost/nodeapi",
+    "JWTPrivateKey": "12345"
+}

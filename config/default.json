@@ -1,0 +1,11 @@
+{
+    "db": "mongodb://localhost/nodeapi",
+    "log_db": "mongodb://localhost/nodeapi_log",
+    "JWTPrivateKey": "",
+
+    "FacebookClientId": "",
+    "FacebookClientSecret": "",
+
+    "GoogleClientId": "",
+    "GoogleClientSecret": ""
+}
