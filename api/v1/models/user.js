@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const Joi = require("joi");
-const { Point } = require('./point'); 
 
 const email = {
     type: String,
@@ -37,9 +36,6 @@ const userSchema = new mongoose.Schema({
     currentCountryCode: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ReferenceCode"
-    },
-    location: { 
-        type: Point
     },
     setting: Object,
 });
