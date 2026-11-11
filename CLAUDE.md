@@ -48,7 +48,6 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Jest needs `--experimental-vm-modules`, or MongoDB driver 7.8 sends an empty handshake and every DB test fails (ADR-005).
 - Use `127.0.0.1`, not `localhost`, in Mongo URIs (Node may resolve to IPv6).
 - Aggregation pipelines aren't cast by Mongoose, so pass real `ObjectId`s.
-- `express-rate-limit` 429 responses are plain text, not the JSON error shape yet (PLAN 5.1).
 
 ## Docs map
 

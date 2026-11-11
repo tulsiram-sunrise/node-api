@@ -40,7 +40,7 @@ Every error uses the same shape:
 | 404 | `USER_NOT_FOUND` | The token's user no longer exists |
 | 409 | `LOCATION_REQUIRED` | Nearby search before setting a location |
 | 413 | `ENTITY_TOO_LARGE` | Body over 10 kB |
-| 429 | (plain text today) | Rate limit exceeded; see PLAN.md 5.1 |
+| 429 | `RATE_LIMITED` | Rate limit exceeded; wait `Retry-After` seconds |
 | 500 | `INTERNAL_ERROR` | Unexpected server error; no details are exposed |
 | 501 | `PROVIDER_NOT_CONFIGURED` | That social provider is not set up on this server |
 | 502 | `PROVIDER_UNAVAILABLE` | Facebook could not be reached or returned a 5xx |

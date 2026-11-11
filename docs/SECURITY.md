@@ -29,7 +29,6 @@ Do not open a public issue. Email the maintainer (the repository owner) with the
 | Rate limits are per instance | Limits multiply when scaled out | PLAN 6.3 Redis store (GAP B19) |
 | Everyone with a location is discoverable | Unwanted discovery | Opt-in decision, 5.1 (GAP B17) |
 | No blocking between users | Harassment through nearby search | GAP A14 (Phase 10, before public launch) |
-| 429 responses are plain text | Inconsistent client handling (not exploitable) | 5.1 (GAP B6) |
 | No Facebook data-deletion callback | App restricted by Meta; users cannot request deletion via Facebook | 5.1 (GAP B1) |
 | No secret scanning, DAST or penetration test | Leaked secrets or exploitable flaws found late | GAP B24, A27, A30 |
 

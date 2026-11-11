@@ -135,7 +135,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 
 - [ ] **B1** Facebook data-deletion callback: `POST /api/v1/auth/facebook/data-deletion` verifies `signed_request`, deletes the user and returns a confirmation code. Meta requires this for apps that use Facebook Login.
 - [ ] **B2** Privacy policy and location retention rules; record location consent with a timestamp.
-- [ ] **B6** Return 429 as JSON: an `express-rate-limit` `handler` that calls `next(new HttpError(429, "Too many requests", "RATE_LIMITED"))`, plus `Retry-After` and a test.
+- [x] **B6** (done 2026-11-11) Return 429 as JSON: an `express-rate-limit` `handler` that calls `next(new HttpError(429, "Too many requests", "RATE_LIMITED"))`, plus `Retry-After` and a test.
 - [ ] **B13** Add migrate-mongo. Turn the RELEASE.md duplicate check and index creation into `migrations/` and `scripts/find-duplicate-users.js`.
 - [ ] **B15** Scheduled backups and one restore drill, with RPO/RTO written down.
 - [ ] **B17** `setting.discoverable` (default `false`), filtered in `$geoNear`, if the opt-in decision below is accepted.
