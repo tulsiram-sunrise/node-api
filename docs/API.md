@@ -34,10 +34,12 @@ Every error uses the same shape:
 | 400 | `VALIDATION_ERROR` | Body or query failed validation |
 | 400 | `ENTITY_PARSE_FAILED` | Malformed JSON |
 | 400 | `INVALID_ID` | Malformed ObjectId in a path parameter |
+| 400 | `INVALID_SIGNED_REQUEST` | Facebook `signed_request` failed signature or format checks |
 | 401 | `UNAUTHENTICATED` | No token sent |
 | 401 | `INVALID_TOKEN` | JWT or provider token is invalid or expired |
 | 404 | `NOT_FOUND` | Unknown route |
 | 404 | `USER_NOT_FOUND` | The token's user no longer exists |
+| 404 | `DELETION_REQUEST_NOT_FOUND` | Unknown data-deletion confirmation code |
 | 409 | `LOCATION_REQUIRED` | Nearby search before setting a location |
 | 413 | `ENTITY_TOO_LARGE` | Body over 10 kB |
 | 429 | `RATE_LIMITED` | Rate limit exceeded; wait `Retry-After` seconds |
@@ -48,7 +50,7 @@ Every error uses the same shape:
 ## Rate limits
 
 - All routes except `/health` and `/ready`: 300 requests per 15 minutes per IP.
-- `/auth/*`: 20 requests per 15 minutes per IP.
+- `/auth/facebook` and `/auth/google`: 20 requests per 15 minutes per IP.
 
 Responses carry `RateLimit` and `RateLimit-Policy` headers (IETF draft 8 format).
 
@@ -71,6 +73,28 @@ The token must have been issued for this server's Facebook app. Returns `200` wi
 ```
 
 Get the ID token from Google Identity Services (web) or the Google Sign-In SDK (iOS/Android). Its audience must be one of the configured client IDs. The response is the same as for Facebook.
+
+### `POST /auth/facebook/data-deletion`
+
+Meta calls this when a user asks Facebook to delete the data this app holds about them. Register it in the Meta App Dashboard as the **Data Deletion Request Callback URL**. It is not for app clients.
+
+The request is `application/x-www-form-urlencoded` with a `signed_request` field. It is accepted only if its HMAC-SHA256 signature matches the Facebook app secret. The user with that app-scoped Facebook ID is deleted; if none exists, the request is still confirmed.
+
+```json
+{ "url": "https://api.example.com/api/v1/auth/facebook/data-deletion/9f2c…", "confirmation_code": "9f2c…" }
+```
+
+The URL uses `napi_publicUrl` when it is set, otherwise the request's host. This route is not subject to the stricter login rate limit.
+
+### `GET /auth/facebook/data-deletion/:code`
+
+The status page Meta shows to the user. `code` is the 32-character hex confirmation code.
+
+```json
+{ "confirmationCode": "9f2c…", "status": "completed", "requestedAt": "2026-11-11T10:00:00.000Z" }
+```
+
+Deletion records hold only the code and a timestamp, and expire after 365 days.
 
 ---
 

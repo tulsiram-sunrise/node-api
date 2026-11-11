@@ -65,6 +65,41 @@ async function verifyFacebookToken(accessToken) {
     };
 }
 
+const base64UrlDecode = (value) => Buffer.from(value, "base64url");
+
+/**
+ * Verify and decode a Facebook `signed_request` (sent to the data-deletion
+ * callback). Format: base64url(HMAC-SHA256(payload, appSecret)) + "." + base64url(JSON payload).
+ * Returns the payload; throws 400 if the signature or format is wrong.
+ */
+function parseFacebookSignedRequest(signedRequest) {
+    const { appSecret } = config.get("auth.facebook");
+    if (!appSecret) throw notConfigured("Facebook");
+
+    const invalid = () =>
+        new HttpError(400, "Invalid signed_request", "INVALID_SIGNED_REQUEST");
+
+    const [encodedSig, encodedPayload, ...rest] = String(signedRequest).split(".");
+    if (!encodedSig || !encodedPayload || rest.length) throw invalid();
+
+    const expected = crypto.createHmac("sha256", appSecret).update(encodedPayload).digest();
+    const actual = base64UrlDecode(encodedSig);
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) {
+        throw invalid();
+    }
+
+    let payload;
+    try {
+        payload = JSON.parse(base64UrlDecode(encodedPayload).toString("utf8"));
+    } catch {
+        throw invalid();
+    }
+    if (String(payload?.algorithm).toUpperCase() !== "HMAC-SHA256" || !payload.user_id) {
+        throw invalid();
+    }
+    return payload;
+}
+
 let googleClient;
 
 /**
@@ -99,4 +134,4 @@ async function verifyGoogleToken(idToken) {
     };
 }
 
-module.exports = { verifyFacebookToken, verifyGoogleToken };
+module.exports = { verifyFacebookToken, verifyGoogleToken, parseFacebookSignedRequest };

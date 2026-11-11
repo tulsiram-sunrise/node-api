@@ -1,5 +1,6 @@
 {
     "port": "PORT",
+    "publicUrl": "napi_publicUrl",
     "db": "napi_db",
     "trustProxy": {
         "__name": "napi_trustProxy",

@@ -90,6 +90,10 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 
 `toJSON` renames `_id` to `id` and removes `provider`, `facebook`, `google` and `__v`.
 
+## Data model: `deletionrequests`
+
+One record per Facebook data-deletion callback: `code` (unique confirmation code), `provider`, `status`, timestamps. It holds no user identifiers. A TTL index removes records after 365 days.
+
 ## Configuration
 
 The `config` package merges `default.json`, then `<NODE_ENV>.json`, then the environment variables mapped in `custom-environment-variables.json`. See `.env.example` for every variable. `startup/config.js` refuses to start without a JWT secret, and in production refuses one shorter than 32 characters.

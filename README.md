@@ -39,6 +39,7 @@ Configuration uses [`config`](https://www.npmjs.com/package/config). Defaults li
 | `napi_db` | MongoDB connection string |
 | `napi_FacebookClientId` / `napi_FacebookClientSecret` | Enables Facebook login |
 | `napi_GoogleClientId` | Enables Google login. May be a comma-separated list of client IDs |
+| `napi_publicUrl` | Public base URL used in links the API returns (optional) |
 | `napi_corsOrigins` | JSON array of allowed browser origins (none by default) |
 | `napi_trustProxy` | Number of proxy hops in front of the app, so client IPs are correct |
 | `napi_logLevel`, `napi_logFile`, `napi_logDb` | Logging level, optional log file, optional MongoDB log sink |

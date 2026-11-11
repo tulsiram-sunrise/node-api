@@ -24,6 +24,10 @@ Set these variables in the deployment environment. See `.env.example` for the fu
 
 Remove `napi_GoogleClientSecret`; it is no longer used.
 
+Optionally set `napi_publicUrl` (e.g. `https://api.example.com`) so links the API returns use the public host.
+
+In the Meta App Dashboard, set the **Data Deletion Request Callback URL** to `https://<public host>/api/v1/auth/facebook/data-deletion`. Meta requires it for apps that use Facebook Login.
+
 Check: the app starts in staging, and `GET /ready` returns 200.
 
 ## 2. Back up

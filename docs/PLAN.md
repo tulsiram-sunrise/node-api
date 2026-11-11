@@ -133,7 +133,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 
 ### 5.1 Close P0 gaps before release (about 5 days)
 
-- [ ] **B1** Facebook data-deletion callback: `POST /api/v1/auth/facebook/data-deletion` verifies `signed_request`, deletes the user and returns a confirmation code. Meta requires this for apps that use Facebook Login.
+- [x] **B1** (done 2026-11-11; register the URL in the Meta App Dashboard at release, see RELEASE.md step 1) Facebook data-deletion callback: `POST /api/v1/auth/facebook/data-deletion` verifies `signed_request`, deletes the user and returns a confirmation code. Meta requires this for apps that use Facebook Login.
 - [ ] **B2** Privacy policy and location retention rules; record location consent with a timestamp.
 - [x] **B6** (done 2026-11-11) Return 429 as JSON: an `express-rate-limit` `handler` that calls `next(new HttpError(429, "Too many requests", "RATE_LIMITED"))`, plus `Retry-After` and a test.
 - [ ] **B13** Add migrate-mongo. Turn the RELEASE.md duplicate check and index creation into `migrations/` and `scripts/find-duplicate-users.js`.
