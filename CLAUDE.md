@@ -18,6 +18,7 @@ npm start          # production start
 npm test           # Jest + in-memory MongoDB. ALWAYS use this, never `npx jest` (needs --experimental-vm-modules)
 npm run lint       # ESLint 10 flat config
 npm run audit:prod # fails on high/critical advisories in production deps
+npm run migrate:up # apply DB migrations (migrations/); production has autoIndex=false
 ```
 
 Before you finish any code change, run `npm run lint && npm test`.
@@ -39,6 +40,7 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search never returns coordinates or emails.
 - Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails.
 - Mock providers at `api/v1/services/oauth` or `global.fetch` in tests. Never call real Facebook or Google.
+- New index: declare it in the model AND add a migration in `migrations/`. `tests/migrations.test.js` checks they match.
 - New config: add a default in `config/default.json`, an env mapping in `custom-environment-variables.json`, a line in `.env.example`, and validation in `startup/config.js` if it's required.
 - Keep the v1 contract: the `x-auth-token` header, Facebook `access_token`, the same routes.
 

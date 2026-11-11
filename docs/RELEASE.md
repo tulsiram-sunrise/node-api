@@ -40,33 +40,30 @@ Check: the dump file exists, and its document count matches `db.users.countDocum
 
 ## 3. Find duplicate provider IDs
 
-Run in `mongosh` against production:
+Run with `napi_db` pointing at production:
 
-```js
-for (const field of ["facebook.id", "google.id"]) {
-  const dupes = db.users.aggregate([
-    { $match: { [field]: { $exists: true, $ne: null } } },
-    { $group: { _id: `$${field}`, ids: { $push: "$_id" }, count: { $sum: 1 } } },
-    { $match: { count: { $gt: 1 } } },
-  ]).toArray();
-  print(`${field}: ${dupes.length} duplicated values`);
-  dupes.forEach((d) => printjson(d));
-}
+```bash
+npm run db:find-duplicates
 ```
+
+It prints each duplicated `facebook.id` / `google.id` with the `_id`s that share it. It exits with code 1 while duplicates exist, so a release job can gate on it.
 
 If there are any, keep the oldest document for each value (the lowest `_id`), merge any profile data you need into it, and delete the rest. Record the deleted `_id`s.
 
-Check: rerunning the script prints `0 duplicated values` for both fields.
+Check: rerunning prints `0 duplicated value(s)` for both fields and exits with code 0.
 
-## 4. Create indexes before deploying
+## 4. Run migrations before deploying
 
-```js
-db.users.createIndex({ "facebook.id": 1 }, { unique: true, sparse: true });
-db.users.createIndex({ "google.id": 1 }, { unique: true, sparse: true });
-db.users.createIndex({ location: "2dsphere" });
+Production runs with `autoIndex: false`, so indexes come only from migrations. With `napi_db` pointing at production:
+
+```bash
+npm run migrate:status   # lists pending migrations
+npm run migrate:up       # applies them; stops on the first failure
 ```
 
-Check: `db.users.getIndexes()` lists all three.
+The users-index migration refuses to run while duplicate provider IDs exist (step 3). Migrations are recorded in the `changelog` collection and guarded by a lock, so running them twice or from two places is safe.
+
+Check: `npm run migrate:status` shows no `PENDING` rows.
 
 ## 5. Deploy
 

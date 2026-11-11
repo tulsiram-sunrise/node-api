@@ -6,8 +6,13 @@ const logger = require("../lib/logger");
 mongoose.set("strictQuery", true);
 mongoose.set("sanitizeFilter", true);
 
-async function connect(uri) {
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
+/**
+ * @param {string} uri
+ * @param {{ autoIndex?: boolean }} [options] autoIndex=false in production:
+ *   indexes are created by migrations (npm run migrate:up), not at startup.
+ */
+async function connect(uri, { autoIndex = true } = {}) {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000, autoIndex });
     logger.info("Connected to MongoDB");
     mongoose.connection.on("disconnected", () => logger.warn("MongoDB disconnected"));
     mongoose.connection.on("reconnected", () => logger.info("MongoDB reconnected"));

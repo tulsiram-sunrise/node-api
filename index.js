@@ -18,7 +18,7 @@ process.on("unhandledRejection", fatal("Unhandled rejection"));
 
 async function main() {
     validateConfig();
-    await db.connect(config.get("db"));
+    await db.connect(config.get("db"), { autoIndex: config.get("autoIndex") });
 
     const app = createApp();
     const port = config.get("port");

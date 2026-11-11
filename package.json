@@ -15,7 +15,11 @@
         "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "audit:prod": "npm audit --omit=dev --audit-level=high"
+        "audit:prod": "npm audit --omit=dev --audit-level=high",
+        "migrate:status": "migrate-mongo status",
+        "migrate:up": "migrate-mongo up",
+        "migrate:down": "migrate-mongo down",
+        "db:find-duplicates": "node scripts/find-duplicate-users.js"
     },
     "author": "Tulsi Ram Maurya",
     "license": "ISC",
@@ -28,6 +32,7 @@
         "helmet": "^8.3.0",
         "joi": "^18.3.2",
         "jsonwebtoken": "^9.0.3",
+        "migrate-mongo": "^14.0.7",
         "mongoose": "^9.12.0",
         "winston": "^3.19.0",
         "winston-mongodb": "^7.0.1"

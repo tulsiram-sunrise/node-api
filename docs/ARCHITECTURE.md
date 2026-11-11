@@ -33,6 +33,8 @@ api/
     controllers/         Thin HTTP handlers: read req, call model/service, write res
     services/oauth.js    Facebook and Google token verification (outbound HTTP)
     models/user.js       Mongoose schema, indexes, toJSON transform, upsertOAuthUser
+migrations/              migrate-mongo migrations (indexes, data changes); config in migrate-mongo-config.js
+scripts/                 Operational CLIs (find-duplicate-users.js) and shared helpers in scripts/lib/
 tests/                   Jest + supertest; helpers/db.js runs mongodb-memory-server
 docs/                    This documentation
 ```

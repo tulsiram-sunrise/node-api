@@ -74,7 +74,9 @@ Put the unit in the name when a number has one: `windowMs`, `radiusMiles`, `SHUT
 - Use `async`/`await` only; Mongoose 9 has no callbacks.
 - Use atomic operators (`$set`, `$setOnInsert`, `findOneAndUpdate` with `upsert`) instead of read-modify-save.
 - Updates pass `{ returnDocument: "after", runValidators: true }`.
-- Declare indexes in the schema, and also create them by script before any release that adds them (see [RELEASE.md](RELEASE.md)).
+- Declare indexes in the schema **and** add a migration in `migrations/` that creates the same index. Production runs with `autoIndex: false`. `tests/migrations.test.js` fails if the two disagree.
+- Name migrations `YYYYMMDDhhmmss-what-it-does.js` (`npx migrate-mongo create <name>`). Each has an `up` and a `down`, must be safe to run twice, and must not depend on application models.
+- Data changes that touch many documents go in migrations too, in batches, never in application startup code.
 - Store coordinates as GeoJSON `[lng, lat]`. The API exposes `{ lat, lng }`; convert with `lib/geo.js`.
 - Mongoose doesn't cast aggregation pipelines. Pass real `ObjectId`s and validated values.
 

@@ -2,6 +2,7 @@
     "port": 5000,
     "publicUrl": "",
     "db": "mongodb://127.0.0.1:27017/nodeapi",
+    "autoIndex": true,
     "trustProxy": false,
     "jwt": {
         "secret": "",

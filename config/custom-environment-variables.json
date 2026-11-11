@@ -2,6 +2,10 @@
     "port": "PORT",
     "publicUrl": "napi_publicUrl",
     "db": "napi_db",
+    "autoIndex": {
+        "__name": "napi_autoIndex",
+        "__format": "json"
+    },
     "trustProxy": {
         "__name": "napi_trustProxy",
         "__format": "json"
