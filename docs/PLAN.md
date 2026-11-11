@@ -138,7 +138,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 - [x] **B6** (done 2026-11-11) Return 429 as JSON: an `express-rate-limit` `handler` that calls `next(new HttpError(429, "Too many requests", "RATE_LIMITED"))`, plus `Retry-After` and a test.
 - [x] **B13** (done 2026-11-11) Add migrate-mongo. Turn the RELEASE.md duplicate check and index creation into `migrations/` and `scripts/find-duplicate-users.js`.
 - [ ] **B15** Scheduled backups and one restore drill, with RPO/RTO written down.
-- [ ] **B17** `setting.discoverable` (default `false`), filtered in `$geoNear`, if the opt-in decision below is accepted.
+- [x] **B17** (done 2026-11-11) Opt-in discoverability: top-level `discoverable` (default `false`) plus `discoverableSince` consent timestamp, `PATCH /users/me/discoverable`, filtered in `$geoNear`. It is top-level rather than under `setting`, because `PUT /me/setting` replaces the whole object (ADR-011).
 - [ ] **B24** gitleaks secret scanning in CI.
 - [x] (done 2026-11-11) Tests for `startup/config.js`: missing secret, short secret in production, half-configured Facebook.
 
@@ -151,6 +151,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 | Facebook token | Any valid token | Must be issued to this app | None for first-party apps |
 | Auth header | `x-auth-token` | `Authorization: Bearer` preferred; `x-auth-token` still accepted | Optional |
 | Sessions | v1 JWTs | v1 tokens have no `aud` claim and are rejected | Users sign in again |
+| Nearby visibility | Everyone with a location | Opt-in via `PATCH /users/me/discoverable` | Add a visibility toggle; existing users are hidden until they opt in |
 
 ### 5.3 Pre-release checklist
 
@@ -255,7 +256,6 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 | Decision | Options | Recommendation |
 | --- | --- | --- |
 | Release owner and target date | Not yet named | Name both before Phase 5 starts |
-| Who appears in nearby search | Everyone with a location, or opt-in | Opt-in through a setting |
 | Access-token lifetime until 9.1 ships | Keep 1 day, or shorten (e.g. 1 h) and have clients silently re-authenticate with the provider SDK | Shorten, if clients can re-authenticate silently |
 | Log, metrics and error-tracking platform for 6.1 | Not yet chosen | Choose before Phase 6 starts; prefer one that accepts OpenTelemetry |
 | Maximum nearby radius | 100 miles today | Keep unless product asks otherwise |
@@ -267,5 +267,6 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-11 | Phase 5.1: B6, B1, B13, B17 and config tests done (PR #30); CI lockfile fix on PR #29; nearby opt-in decided (ADR-011) |
 | 2026-11-07 | Added gap analysis, restructuring and standards plans; roadmap rewritten as Phases 6–10 |
 | 2026-11-07 | Phases 1–4 completed on `upgrade/modernize-api`; plan written |

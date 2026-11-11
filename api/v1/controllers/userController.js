@@ -24,6 +24,20 @@ module.exports = {
         res.json(await updateMe(req, { level: req.body.level }));
     },
 
+    /** Opt in or out of nearby search (B17); opting in records consent time. */
+    updateDiscoverable: async (req, res) => {
+        const { discoverable } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.auth.sub,
+            discoverable
+                ? { $set: { discoverable: true, discoverableSince: new Date() } }
+                : { $set: { discoverable: false }, $unset: { discoverableSince: 1 } },
+            updateOptions
+        );
+        if (!user) throw userNotFound();
+        res.json(user);
+    },
+
     updateLocation: async (req, res) => {
         res.json(await updateMe(req, { location: toPoint(req.body.location) }));
     },
@@ -53,7 +67,7 @@ module.exports = {
 
         const radiusMiles = distance ?? me.setting?.distance ?? DEFAULT_NEARBY_MILES;
         // Aggregation filters are not cast by Mongoose, so use the ObjectId as-is.
-        const query = { _id: { $ne: me._id } };
+        const query = { _id: { $ne: me._id }, discoverable: true };
         if (level) query.level = level;
 
         const results = await User.aggregate([

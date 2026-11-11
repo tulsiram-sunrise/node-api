@@ -37,7 +37,7 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Errors: `throw new HttpError(status, message, "CODE")`. Never `res.status(4xx).send()`. Add new codes to `docs/API.md`.
 - Every input goes through `validate(schema, "body" | "query")` with bounded Joi schemas. Read query values from `req.validated.query` (Express 5 `req.query` is read-only).
 - Database writes are atomic (`$set`, `$setOnInsert`, upserts) with `{ returnDocument: "after", runValidators: true }`. Don't use `new: true`; it is deprecated in Mongoose 9.
-- Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search never returns coordinates or emails.
+- Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search returns only `discoverable: true` users (opt-in, ADR-011) and never returns coordinates or emails.
 - Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails.
 - Mock providers at `api/v1/services/oauth` or `global.fetch` in tests. Never call real Facebook or Google.
 - New index: declare it in the model AND add a migration in `migrations/`. `tests/migrations.test.js` checks they match.

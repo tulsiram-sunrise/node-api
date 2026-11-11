@@ -118,6 +118,14 @@ Deletes the account. Returns `204`. The JWT keeps validating until it expires, b
 
 Allowed values: `Beginner`, `Intermediate`, `Advanced`. Returns the updated user.
 
+### `PATCH /users/me/discoverable`
+
+```json
+{ "discoverable": true }
+```
+
+Opts in to (or out of) appearing in other users' nearby search. Users are **not** discoverable until they opt in. Opting in sets `discoverableSince` to the current time as a consent record; opting out removes it. The value must be a JSON boolean. Returns the updated user.
+
 ### `PUT /users/me/location`
 
 ```json
@@ -159,7 +167,7 @@ The whole `setting` object is replaced. Unknown keys are dropped.
 }
 ```
 
-Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
+Only users who have opted in with `PATCH /users/me/discoverable` appear. The caller does not need to be discoverable to search. Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
 
 ---
 
@@ -173,6 +181,8 @@ Results are sorted closest first and never include the caller. Coordinates and e
   "profilePic": "https://…",
   "level": "Beginner",
   "location": { "lat": 51.5074, "lng": -0.1278 },
+  "discoverable": true,
+  "discoverableSince": "2026-11-07T10:02:00.000Z",
   "setting": { "distance": 10, "preferredTime": [{ "day": "Monday", "timing": "18:00-20:00" }] },
   "createdAt": "2026-11-07T10:00:00.000Z",
   "updatedAt": "2026-11-07T10:05:00.000Z"

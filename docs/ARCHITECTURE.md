@@ -85,6 +85,8 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 | `email` | string | Lower-cased; for Google, stored only if verified |
 | `name`, `profilePic` | string | Taken from the provider on first sign-in only |
 | `level` | enum | `Beginner` (default), `Intermediate`, `Advanced` |
+| `discoverable` | boolean | Default `false`; only `true` users appear in nearby search |
+| `discoverableSince` | Date | When the user last opted in (consent record); removed on opt-out |
 | `location` | GeoJSON Point | `[lng, lat]`; `2dsphere` index; returned to the owner as `{ lat, lng }` |
 | `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, timing }` |
 | `currentCountryCode` | ObjectId | Kept from v1; refers to `ReferenceCode`, which this service does not define |

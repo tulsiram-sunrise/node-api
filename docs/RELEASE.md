@@ -70,7 +70,7 @@ Check: `npm run migrate:status` shows no `PENDING` rows.
 1. Deploy the image to staging. Run a manual Facebook login, a Google login, `GET /users/me`, a location update and a nearby search.
 2. Deploy to production with a rolling update. The readiness probe is `/ready` and the liveness probe is `/health`.
 3. Publish the client updates.
-4. Announce that users must sign in again.
+4. Announce that users must sign in again, and that they must turn on visibility to appear in nearby search. Until users opt in, nearby results will be empty or sparse.
 
 ## 6. Monitor for 48 hours
 
