@@ -1,24 +1,42 @@
-const express = require("express");
-const winston = require("winston");
+const config = require("config");
+const logger = require("./lib/logger");
+const validateConfig = require("./startup/config");
+const db = require("./startup/db");
+const createApp = require("./app");
 
-const app = express();
+const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-require("./startup/logging")();
-// only for demo
-app.get("/", (req, res) => {
-    res.send({"message": "node apis running fine"});
-});
+function fatal(label) {
+    return (err) => {
+        logger.error(`${label}: ${err?.message ?? err}`, { err });
+        process.exit(1);
+    };
+}
 
-require("./startup/libs")();
-require("./startup/validation")();
-require("./startup/routes")(app);
-require("./startup/db")();
-require("./startup/config")();
+process.on("uncaughtException", fatal("Uncaught exception"));
+process.on("unhandledRejection", fatal("Unhandled rejection"));
 
-// Running express server
-const port = process.env.PORT || 5000;
-const server = app.listen(port, () =>
-    winston.info(`Server listening on port ${port}`)
-);
+async function main() {
+    validateConfig();
+    await db.connect(config.get("db"));
 
-module.exports = server;
+    const app = createApp();
+    const port = config.get("port");
+    const server = app.listen(port, () => logger.info(`Server listening on port ${port}`));
+
+    let shuttingDown = false;
+    const shutdown = (signal) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        logger.info(`${signal} received, shutting down`);
+        setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS).unref();
+        server.close(async () => {
+            await db.disconnect();
+            process.exit(0);
+        });
+    };
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+}
+
+main().catch(fatal("Startup failed"));

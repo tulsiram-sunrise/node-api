@@ -1,25 +1,14 @@
 const express = require("express");
+const AuthController = require("../controllers/authController");
+const validate = require("../../../middleware/validate");
+const schemas = require("../validators/auth");
+const { authLimiter } = require("../../../startup/security");
+
 const router = express.Router();
-const UserController = require("../controllers/userController");
-const passport = require("passport");
 
-router.post(
-    "/facebook",
-    passport.authenticate("facebook-token", { session: false }),
-    UserController.login,
-    UserController.generateToken,
-    UserController.sendToken
-);
+router.use(authLimiter());
 
-router.post(
-    "/google",
-    passport.authenticate("google-token", { session: false, scope: 
-        [ 'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/plus.me', ] }),
-    UserController.login,
-    UserController.generateToken,
-    UserController.sendToken
-);
+router.post("/facebook", validate(schemas.facebook), AuthController.facebook);
+router.post("/google", validate(schemas.google), AuthController.google);
 
 module.exports = router;

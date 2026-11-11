@@ -1,4 +1,22 @@
 {
-    "db": "mongodb://localhost/nodeapi",
-    "JWTPrivateKey": "12345"
+    "db": "mongodb://127.0.0.1:27017/nodeapi_test",
+    "jwt": {
+        "secret": "test-only-secret-that-is-at-least-32-characters-long"
+    },
+    "auth": {
+        "facebook": {
+            "appId": "test-fb-app",
+            "appSecret": "test-fb-secret"
+        },
+        "google": {
+            "clientId": "test-google-client.apps.googleusercontent.com"
+        }
+    },
+    "rateLimit": {
+        "max": 10000,
+        "authMax": 10000
+    },
+    "logging": {
+        "level": "silent"
+    }
 }

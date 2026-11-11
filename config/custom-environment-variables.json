@@ -1,7 +1,32 @@
 {
-    "JWTPrivateKey": "napi_JWTPrivateKey",
-    "FacebookClientId": "napi_FacebookClientId",
-    "FacebookClientSecret": "napi_FacebookClientSecret",
-    "GoogleClientId": "napi_GoogleClientId",
-    "GoogleClientSecret": "napi_GoogleClientSecret"
+    "port": "PORT",
+    "db": "napi_db",
+    "trustProxy": {
+        "__name": "napi_trustProxy",
+        "__format": "json"
+    },
+    "jwt": {
+        "secret": "napi_JWTPrivateKey",
+        "expiresIn": "napi_jwtExpiresIn"
+    },
+    "auth": {
+        "facebook": {
+            "appId": "napi_FacebookClientId",
+            "appSecret": "napi_FacebookClientSecret"
+        },
+        "google": {
+            "clientId": "napi_GoogleClientId"
+        }
+    },
+    "cors": {
+        "origins": {
+            "__name": "napi_corsOrigins",
+            "__format": "json"
+        }
+    },
+    "logging": {
+        "level": "napi_logLevel",
+        "file": "napi_logFile",
+        "mongo": "napi_logDb"
+    }
 }

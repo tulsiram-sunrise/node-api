@@ -1,48 +1,29 @@
 const config = require("config");
-const passport = require('passport');
-const FacebookTokenStrategy = require('passport-facebook-token');
-const GoogleTokenStrategy = require('passport-google-plus-token');
-const { User } = require('../api/v1/models/user');
+const logger = require("../lib/logger");
 
-module.exports = () => {
-    if (!config.get("JWTPrivateKey")) {
-        console.log('JWTPrivateKey is not defined.');
-        throw new Error("FATAL ERROR: JWTPrivateKey is not defined.");
+const MIN_SECRET_LENGTH = 32;
+
+/**
+ * Fail fast on configuration that would make the API insecure or unusable.
+ * Social providers are optional: an unconfigured provider answers 501.
+ */
+module.exports = function validateConfig() {
+    const secret = config.get("jwt.secret");
+    if (!secret) {
+        throw new Error("FATAL ERROR: jwt.secret (env napi_JWTPrivateKey) is not defined.");
+    }
+    if (secret.length < MIN_SECRET_LENGTH) {
+        const msg = `jwt.secret should be at least ${MIN_SECRET_LENGTH} characters long.`;
+        if (process.env.NODE_ENV === "production") throw new Error(`FATAL ERROR: ${msg}`);
+        logger.warn(msg);
     }
 
-    const fci = config.get('FacebookClientId');
-    const fcs = config.get('FacebookClientSecret');
-
-    if (!fci || !fcs) {
-        console.log('facebook client id or/and secret not properly set');
-        throw new Error("FATAL ERROR: facebook client id or/and secret not properly set.");
+    const fb = config.get("auth.facebook");
+    const google = config.get("auth.google");
+    if (Boolean(fb.appId) !== Boolean(fb.appSecret)) {
+        throw new Error("FATAL ERROR: Facebook appId and appSecret must be set together.");
     }
-
-    const gci = config.get('GoogleClientId');
-    const gcs = config.get('GoogleClientSecret');
-
-    if (!gci || !gcs) {
-        console.log('google client id or/and secret not properly set');
-        throw new Error("FATAL ERROR: google client id or/and secret not properly set.");
+    if (!fb.appId && !google.clientId) {
+        logger.warn("No social login provider is configured; /api/v1/auth/* will return 501.");
     }
-
-    // Facebook oAuth token strategy
-    passport.use('facebook-token', new FacebookTokenStrategy(
-        { clientID: fci, clientSecret: fcs, redirect_uri: 'http://localhost:5000/api/v1/auth/google/callback' },
-        function (accessToken, refreshToken, profile, done) {
-            User.upsertFbUser(accessToken, refreshToken, profile, function(err, user) {
-                return done(err, user);
-            });
-        }
-    ));
-
-    // Google oAuth token strategy
-    passport.use('google-token', new GoogleTokenStrategy(
-        { clientID: gci, clientSecret: gcs, }, 
-        async (accessToken, refreshToken, profile, done) => {
-            User.upsertGoogleUser(accessToken, refreshToken, profile, function(err, user) {
-                return done(err, user);
-            })
-        }
-    ));
 };
