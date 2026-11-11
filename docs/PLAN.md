@@ -140,7 +140,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 - [ ] **B15** Scheduled backups and one restore drill, with RPO/RTO written down.
 - [ ] **B17** `setting.discoverable` (default `false`), filtered in `$geoNear`, if the opt-in decision below is accepted.
 - [ ] **B24** gitleaks secret scanning in CI.
-- [ ] Tests for `startup/config.js`: missing secret, short secret in production, half-configured Facebook.
+- [x] (done 2026-11-11) Tests for `startup/config.js`: missing secret, short secret in production, half-configured Facebook.
 
 ### 5.2 Breaking changes for clients
 
