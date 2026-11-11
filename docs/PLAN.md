@@ -139,7 +139,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 - [x] **B13** (done 2026-11-11) Add migrate-mongo. Turn the RELEASE.md duplicate check and index creation into `migrations/` and `scripts/find-duplicate-users.js`.
 - [ ] **B15** Scheduled backups and one restore drill, with RPO/RTO written down.
 - [x] **B17** (done 2026-11-11) Opt-in discoverability: top-level `discoverable` (default `false`) plus `discoverableSince` consent timestamp, `PATCH /users/me/discoverable`, filtered in `$geoNear`. It is top-level rather than under `setting`, because `PUT /me/setting` replaces the whole object (ADR-011).
-- [ ] **B24** gitleaks secret scanning in CI.
+- [x] **B24** (done 2026-11-11) gitleaks secret scanning in CI: the full git history is scanned on every push and PR. A pre-commit hook follows with husky in Phase 8 (8.2).
 - [x] (done 2026-11-11) Tests for `startup/config.js`: missing secret, short secret in production, half-configured Facebook.
 
 ### 5.2 Breaking changes for clients
@@ -267,6 +267,6 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
-| 2026-11-11 | Phase 5.1: B6, B1, B13, B17 and config tests done (PR #30); CI lockfile fix on PR #29; nearby opt-in decided (ADR-011) |
+| 2026-11-11 | Phase 5.1: B6, B1, B13, B17, B24 and config tests done (PR #30); CI lockfile fix on PR #29; nearby opt-in decided (ADR-011) |
 | 2026-11-07 | Added gap analysis, restructuring and standards plans; roadmap rewritten as Phases 6–10 |
 | 2026-11-07 | Phases 1–4 completed on `upgrade/modernize-api`; plan written |

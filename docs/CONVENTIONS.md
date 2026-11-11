@@ -107,7 +107,9 @@ Put the unit in the name when a number has one: `windowMs`, `radiusMiles`, `SHUT
 - Commit subjects are imperative and at most 72 characters: `Add nearby search level filter`. Use the body to explain why.
 - One logical change per PR. CI (lint, tests, production audit) must be green before merge.
 - A PR that changes behaviour also updates [API.md](API.md), [PLAN.md](PLAN.md) and, for decisions, [DECISIONS.md](DECISIONS.md).
-- Never commit `.env`, logs or secrets. `.gitignore` covers the usual paths.
+- Never commit `.env`, logs or secrets. `.gitignore` covers the usual paths, and CI runs a gitleaks scan of the full history on every push and PR.
+- To scan locally before pushing (Docker required): `docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner`.
+- If a real secret is ever committed, **rotate it first**. Removing it from history does not un-leak it.
 
 ## Dependencies
 
