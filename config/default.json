@@ -1,11 +1,40 @@
 {
-    "db": "mongodb://localhost/nodeapi",
-    "log_db": "mongodb://localhost/nodeapi_log",
-    "JWTPrivateKey": "",
+    "port": 5000,
+    "db": "mongodb://127.0.0.1:27017/nodeapi",
+    "trustProxy": false,
 
-    "FacebookClientId": "",
-    "FacebookClientSecret": "",
+    "jwt": {
+        "secret": "",
+        "expiresIn": "1d",
+        "issuer": "NodeApi",
+        "audience": "node-api-clients"
+    },
 
-    "GoogleClientId": "",
-    "GoogleClientSecret": ""
+    "auth": {
+        "facebook": {
+            "appId": "",
+            "appSecret": "",
+            "graphVersion": "v21.0"
+        },
+        "google": {
+            "clientId": ""
+        }
+    },
+
+    "cors": {
+        "origins": []
+    },
+
+    "rateLimit": {
+        "windowMs": 900000,
+        "max": 300,
+        "authMax": 20
+    },
+
+    "logging": {
+        "level": "info",
+        "format": "pretty",
+        "file": "",
+        "mongo": ""
+    }
 }

@@ -1,131 +1,104 @@
 const mongoose = require("mongoose");
-const Joi = require("joi");
 
-const email = {
-    type: String,
-    match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/
-};
+const PROVIDERS = ["facebook", "google"];
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DUPLICATE_KEY = 11000;
 
-// User schema for database mongodb
-const userSchema = new mongoose.Schema({
-    provider: {
-        type: String,
-        enum: ['local', 'facebook', 'google'],
-        required: true,
-        select: false
+const pointSchema = new mongoose.Schema(
+    {
+        type: { type: String, enum: ["Point"], required: true },
+        coordinates: { type: [Number], required: true }, // [lng, lat]
     },
-    email: email,
-    facebook: {
-        type: { id: String },
-        select: false
-    },
-    google: {
-        type: { id: String },
-        select: false
-    },
-    name: {
-        type: String
-    },
-    profilePic: {
-        type: String
-    },
-    level: {
-        type: String,
-        default: "Beginner"
-    },
-    currentCountryCode: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "ReferenceCode"
-    },
-    setting: Object,
-});
+    { _id: false }
+);
 
-userSchema.statics.upsertFbUser = function(
-    accessToken,
-    refreshToken,
-    profile,
-    cb
-) {
-    var that = this;
-    return this.findOne(
-        {
-            "facebook.id": profile.id
+const settingSchema = new mongoose.Schema(
+    {
+        distance: { type: Number, min: 1, max: 100 },
+        preferredTime: [
+            new mongoose.Schema(
+                { day: { type: String, enum: DAYS }, timing: String },
+                { _id: false }
+            ),
+        ],
+    },
+    { _id: false }
+);
+
+const userSchema = new mongoose.Schema(
+    {
+        provider: { type: String, enum: PROVIDERS, required: true, select: false },
+        email: { type: String, lowercase: true, trim: true, maxlength: 254 },
+        facebook: { id: { type: String, select: false } },
+        google: { id: { type: String, select: false } },
+        name: { type: String, trim: true, maxlength: 100 },
+        profilePic: { type: String, maxlength: 2048 },
+        level: { type: String, enum: LEVELS, default: "Beginner" },
+        location: { type: pointSchema },
+        currentCountryCode: { type: mongoose.Schema.Types.ObjectId, ref: "ReferenceCode" },
+        setting: { type: settingSchema },
+    },
+    {
+        timestamps: true,
+        toJSON: {
+            versionKey: false,
+            transform(doc, ret) {
+                ret.id = String(ret._id);
+                delete ret._id;
+                delete ret.provider;
+                delete ret.facebook;
+                delete ret.google;
+                if (ret.location?.coordinates) {
+                    const [lng, lat] = ret.location.coordinates;
+                    ret.location = { lat, lng };
+                }
+                return ret;
+            },
         },
-        function(err, user) {
-            // no user was found, lets create a new one
-            if (!user) {
-                var newUser = new that({
-                    provider: 'facebook',
-                    email: profile.emails[0].value,
-                    facebook: { id: profile.id }
-                });
+    }
+);
 
-                newUser.save(function(error, savedUser) {
-                    if (error) {
-                        console.log(error);
-                    }
-                    return cb(error, savedUser);
-                });
-            } else {
-                return cb(err, user);
+// One account per provider identity; enforced by the database, not app code.
+userSchema.index({ "facebook.id": 1 }, { unique: true, sparse: true });
+userSchema.index({ "google.id": 1 }, { unique: true, sparse: true });
+userSchema.index({ location: "2dsphere" });
+
+/**
+ * Atomically find or create the user for a verified social identity.
+ * @param {{provider: string, providerId: string, email?: string, name?: string, profilePic?: string}} identity
+ */
+userSchema.statics.upsertOAuthUser = async function (identity) {
+    const { provider, providerId, email, name, profilePic } = identity;
+    if (!PROVIDERS.includes(provider)) throw new Error(`Unknown provider ${provider}`);
+
+    const filter = { [`${provider}.id`]: String(providerId) };
+    const onInsert = { provider };
+    if (email) onInsert.email = email;
+    if (name) onInsert.name = name;
+    if (profilePic) onInsert.profilePic = profilePic;
+
+    const run = () =>
+        this.findOneAndUpdate(
+            filter,
+            { $setOnInsert: onInsert },
+            {
+                upsert: true,
+                returnDocument: "after",
+                runValidators: true,
+                setDefaultsOnInsert: true,
             }
-        }
-    );
+        );
+
+    try {
+        return await run();
+    } catch (err) {
+        // Two concurrent first logins: the loser hits the unique index, so re-read.
+        if (err.code === DUPLICATE_KEY) return run();
+        throw err;
+    }
 };
 
-userSchema.statics.upsertGoogleUser = function(
-    accessToken,
-    refreshToken,
-    profile,
-    cb
-) {
-    var that = this;
-    return this.findOne(
-        { "google.id": profile.id, },
-        function(err, user) {
-            // no user was found, lets create a new one
-            if (!user) {
-                var newUser = new that({
-                    provider: 'google',
-                    email: profile.emails[0].value,
-                    google: { id: profile.id }
-                });
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
-                newUser.save(function(error, savedUser) {
-                    if (error) {
-                        console.log(error);
-                    }
-                    return cb(error, savedUser);
-                });
-            } else {
-                return cb(err, user);
-            }
-        }
-    )
-}
-
-const User = mongoose.model("User", userSchema);
-
-const userLevelSchema = Joi.object().keys({
-    level: Joi.string().required().valid(['Beginner', 'Intermediate', 'Advanced'])
-});
-
-const userLocationSchema = Joi.object().keys({
-    location: Joi.object().keys({
-        lat: Joi.number().required(),
-        lng: Joi.number().required()
-    }).required()
-});
-
-const userSettingSchema = Joi.object().keys({
-    distance: Joi.number().required(),
-    preferredTime: Joi.array().items(Joi.object().keys({
-        day: Joi.string(),
-        timing: Joi.string()
-    }).with('day', 'timing').required()).required()
-});
-
-exports.User = User;
-exports.levelSchema = userLevelSchema;
-exports.locationSchema = userLocationSchema;
-exports.settingSchema = userSettingSchema;
+module.exports = { User, LEVELS, DAYS };

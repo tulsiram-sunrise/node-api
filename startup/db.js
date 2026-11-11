@@ -1,11 +1,22 @@
 const mongoose = require("mongoose");
-const winston = require("winston");
-const config = require("config");
+const logger = require("../lib/logger");
 
-module.exports = () => {
-    mongoose.set("useCreateIndex", true);
-    mongoose.set('useFindAndModify', true);
-    mongoose
-        .connect(config.get("db"), { useNewUrlParser: true })
-        .then(() => winston.info("Connected to MongoDB..."));
-};
+// Reject unknown fields in query filters, and strip `$`-operators that arrive
+// inside user-supplied filter values (NoSQL injection defence in depth).
+mongoose.set("strictQuery", true);
+mongoose.set("sanitizeFilter", true);
+
+async function connect(uri) {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
+    logger.info("Connected to MongoDB");
+    mongoose.connection.on("disconnected", () => logger.warn("MongoDB disconnected"));
+    mongoose.connection.on("reconnected", () => logger.info("MongoDB reconnected"));
+}
+
+async function disconnect() {
+    await mongoose.disconnect();
+}
+
+const isConnected = () => mongoose.connection.readyState === 1;
+
+module.exports = { connect, disconnect, isConnected };

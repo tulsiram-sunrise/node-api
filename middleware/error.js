@@ -1,19 +1,36 @@
-const winston = require("winston");
+const logger = require("../lib/logger");
+const HttpError = require("../lib/httpError");
 
+// Express identifies error handlers by their 4-argument signature.
 module.exports = (err, req, res, next) => {
-    /**
-     * winston has following methods, and the order in which
-     * they preffered to be logged(Logging levels)
-     *
-     * 1) error
-     * 2) warn
-     * 3) info
-     * 4) verbose
-     * 5) debug
-     * 6) silly
-     */
+    if (res.headersSent) return next(err);
 
-    winston.error(err.message, err);
+    let status = 500;
+    let code = "INTERNAL_ERROR";
+    let message = "Internal Server Error";
+    let details;
 
-    res.status(500).send("Something failed...");
+    if (err instanceof HttpError) {
+        ({ status, message, details } = err);
+        code = err.code ?? code;
+    } else if (err.name === "ValidationError" || err.name === "CastError") {
+        // Mongoose validation that slipped past request validation.
+        status = 400;
+        code = "VALIDATION_ERROR";
+        message = "Invalid data";
+    } else if (err.expose && err.status >= 400 && err.status < 500) {
+        // body-parser / http-errors (malformed JSON, payload too large, ...)
+        status = err.status;
+        code = err.type ? err.type.toUpperCase().replace(/\W/g, "_") : "BAD_REQUEST";
+        message = err.message;
+    }
+
+    if (status >= 500) {
+        // Known upstream/config conditions (502, 501) are warnings; anything else is a bug.
+        logger[err instanceof HttpError ? "warn" : "error"](err.message, { err, requestId: req.id, path: req.originalUrl });
+    }
+
+    res.status(status).json({
+        error: { code, message, ...(details && { details }), requestId: req.id },
+    });
 };

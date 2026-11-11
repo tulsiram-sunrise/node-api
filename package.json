@@ -1,43 +1,54 @@
 {
     "name": "node-api",
-    "version": "1.0.0",
-    "description": "This is node api",
+    "version": "2.0.0",
+    "description": "REST API with social login (Facebook, Google), user profiles and nearby-user search",
     "main": "index.js",
-    "directories": {
-        "test": "tests"
+    "private": true,
+    "engines": {
+        "node": ">=22"
     },
     "scripts": {
         "start": "node index.js",
-        "test": "jest --watchAll --verbose"
+        "dev": "node --watch --env-file-if-exists=.env index.js",
+        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+        "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+        "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "audit:prod": "npm audit --omit=dev --audit-level=high"
     },
-    "keywords": [
-        ""
-    ],
     "author": "Tulsi Ram Maurya",
     "license": "ISC",
     "dependencies": {
-        "bcrypt": "^5.0.0",
-        "config": "^3.0.1",
-        "express": "^4.16.4",
-        "express-async-errors": "^3.1.1",
-        "googleapis": "^66.0.0",
-        "helmet": "^3.16.0",
-        "joi": "^14.3.1",
-        "joi-objectid": "^2.0.0",
-        "jsonwebtoken": "^8.5.1",
-        "lodash": "^4.17.11",
-        "moment": "^2.24.0",
-        "mongoose": "^5.7.5",
-        "passport": "^0.4.0",
-        "passport-facebook": "^3.0.0",
-        "passport-facebook-token": "^3.3.0",
-        "passport-google-plus-token": "^2.1.0",
-        "socket.io": "^2.2.0",
-        "winston": "^3.2.1",
-        "winston-mongodb": "^5.0.0"
+        "config": "^4.4.2",
+        "cors": "^2.8.6",
+        "express": "^5.3.0",
+        "express-rate-limit": "^8.7.3",
+        "google-auth-library": "^11.3.3",
+        "helmet": "^8.3.0",
+        "joi": "^18.3.2",
+        "jsonwebtoken": "^9.0.3",
+        "mongoose": "^9.12.0",
+        "winston": "^3.19.0",
+        "winston-mongodb": "^7.0.1"
+    },
+    "jest": {
+        "testEnvironment": "node",
+        "testTimeout": 30000,
+        "collectCoverageFrom": [
+            "api/**/*.js",
+            "lib/**/*.js",
+            "middleware/**/*.js",
+            "startup/**/*.js",
+            "app.js"
+        ]
     },
     "devDependencies": {
-        "jest": "^24.5.0",
-        "supertest": "^4.0.2"
+        "@eslint/js": "^10.0.1",
+        "eslint": "^10.14.0",
+        "globals": "^17.14.0",
+        "jest": "^30.5.2",
+        "mongodb-memory-server": "^11.3.0",
+        "supertest": "^7.3.1"
     }
 }
