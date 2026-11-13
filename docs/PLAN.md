@@ -198,7 +198,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
 | 6.7 | Data model cleanup: `currentCountryCode` decision (open), compound geo index (B14 done 2026-11-13) | B12, B14 | 0.5 |
 | 6.8 | (Done 2026-11-13) `PATCH /users/me` for name and photo; security event log | B5, B4 | 1 |
-| 6.9 | Load test with performance budget; seed script; coverage threshold | B18, B27, B28 | 1.75 |
+| 6.9 | Load test with performance budget; seed script; coverage threshold (B28 done 2026-11-13) | B18, B27, B28 | 1.75 |
 
 ### Phase 7: Restructure (about 1 week)
 
@@ -267,6 +267,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Phase 6.9 B28 done: CI fails below the coverage thresholds (92/80/94/95) |
 | 2026-11-13 | Phase 6.7 B14 done: compound geo index `{ location, discoverable, level }` with migration; B12 still needs a decision |
 | 2026-11-13 | Phase 6.8 (B5, B4) done: `PATCH /users/me` for name and photo; security event log |
 | 2026-11-13 | Phase 6.4 (B7) done: encrypted cursor pagination for nearby search, stable on distance ties, without a blocking sort |

@@ -16,6 +16,7 @@ Planned (not started, don't do ahead of time): Phase 7 moves code to `src/module
 npm run dev        # node --watch, loads .env if present
 npm start          # production start
 npm test           # Jest + in-memory MongoDB. ALWAYS use this, never `npx jest` (needs --experimental-vm-modules)
+npm run test:coverage # what CI runs; fails below coverageThreshold in package.json
 npm run lint       # ESLint 10 flat config
 npm run audit:prod # fails on high/critical advisories in production deps
 npm run migrate:up # apply DB migrations (migrations/); production has autoIndex=false

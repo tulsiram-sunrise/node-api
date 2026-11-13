@@ -23,7 +23,7 @@ npm start
 | --- | --- |
 | `npm run dev` | Start with `--watch` and `.env` |
 | `npm test` | Run tests against an in-memory MongoDB |
-| `npm run test:coverage` | Run tests with a coverage report |
+| `npm run test:coverage` | Run tests with a coverage report; fails below the thresholds in `package.json` (CI runs this) |
 | `npm run lint` | Run ESLint |
 | `npm run audit:prod` | Fail on high or critical advisories in production dependencies |
 | `npm run migrate:status` / `migrate:up` / `migrate:down` | Show, apply or roll back database migrations (`migrations/`) |

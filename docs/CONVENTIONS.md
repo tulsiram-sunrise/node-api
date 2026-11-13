@@ -100,12 +100,13 @@ Put the unit in the name when a number has one: `windowMs`, `radiusMiles`, `SHUT
 - Mock outbound HTTP at the service boundary: `jest.mock("../api/v1/services/oauth")` or a stubbed `global.fetch`. Never call the real providers.
 - Name tests as behaviour: `it("rejects tokens issued to another app")`.
 - Run with `npm test`, not `npx jest` (see [DECISIONS.md](DECISIONS.md) ADR-005).
+- CI runs `npm run test:coverage`, which fails if coverage drops below `coverageThreshold` in `package.json` (B28). Run it locally before opening a PR that adds code. Raise the thresholds when coverage goes up, and never lower them to get a PR through.
 
 ## Git and pull requests
 
 - Branch from `master`: `feature/<topic>`, `fix/<topic>`, `chore/<topic>`, `upgrade/<topic>`.
 - Commit subjects are imperative and at most 72 characters: `Add nearby search level filter`. Use the body to explain why.
-- One logical change per PR. CI (lint, tests, production audit) must be green before merge.
+- One logical change per PR. CI (lint, tests with the coverage threshold, production audit) must be green before merge.
 - A PR that changes behaviour also updates [API.md](API.md), [PLAN.md](PLAN.md) and, for decisions, [DECISIONS.md](DECISIONS.md).
 - Never commit `.env`, logs or secrets. `.gitignore` covers the usual paths, and CI runs a gitleaks scan of the full history on every push and PR.
 - To scan locally before pushing (Docker required): `docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner`.
