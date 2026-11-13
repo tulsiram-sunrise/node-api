@@ -107,6 +107,17 @@ describe("security event log (B4)", () => {
         expect(await User.countDocuments()).toBe(0);
     });
 
+    it("truncates the user agent to 256 characters", async () => {
+        oauth.verifyGoogleToken.mockResolvedValue(identity);
+        await request(app)
+            .post("/api/v1/auth/google")
+            .set("user-agent", "A".repeat(1000))
+            .send({ id_token: "secret-id-token" })
+            .expect(200);
+
+        expect(eventNamed("auth.login").userAgent).toBe("A".repeat(256));
+    });
+
     it("never logs tokens or emails", async () => {
         const { token } = await login();
         await request(app).patch("/api/v1/users/me").set("authorization", `Bearer ${token}`).send({ name: "N" });
