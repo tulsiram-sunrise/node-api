@@ -73,7 +73,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | ID | Gap | Why it matters | Fix | Pri | Effort |
 | --- | --- | --- | --- | --- | --- |
 | B18 | (Done 2026-11-13, PLAN 6.9: `npm run loadtest`, a built-in fixed-rate generator instead of k6 so providers can be stubbed in-process and no binary is needed. The peak of 50 rps is assumed; measured locally, it gives a baseline, not production capacity) No load test or performance budget | Capacity is unknown before launch | k6 script for login (with providers mocked), `/users/me` and `/users/nearby`; budget p95 < 200 ms at the expected peak RPS | P1 | 1 |
-| B19 | Rate limiter is per instance | Limits multiply when scaled out | Redis store (`rate-limit-redis`) | P1 | 1 |
+| B19 | (Deferred 2026-11-13, PLAN 6.3: production runs a single instance; required before scaling out) Rate limiter is per instance | Limits multiply when scaled out | Redis store (`rate-limit-redis`) | P1 | 1 |
 | B20 | No retries for transient provider failures | A single network blip fails a login | One retry with jitter on network errors and 5xx for the Graph API; never retry 4xx | P2 | 0.25 |
 
 ### Observability

@@ -41,7 +41,7 @@ Events never contain tokens, emails, names or coordinates. `ip` is personal data
 | Gap | Risk | Plan item |
 | --- | --- | --- |
 | Access tokens last 1 day and can't be revoked | A stolen token works until it expires | PLAN 9.1 refresh tokens (GAP B3) |
-| Rate limits are per instance | Limits multiply when scaled out | PLAN 6.3 Redis store (GAP B19) |
+| Rate limits are per instance | Limits multiply when scaled out | Production runs one instance (decided 2026-11-13). PLAN 6.3 Redis store (GAP B19) must ship before a second instance |
 | No blocking between users | Harassment through nearby search | GAP A14 (Phase 10, before public launch) |
 | No DAST or penetration test | Exploitable flaws found late | GAP A27, A30 |
 
