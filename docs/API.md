@@ -34,6 +34,7 @@ Every error uses the same shape:
 | 400 | `VALIDATION_ERROR` | Body or query failed validation |
 | 400 | `ENTITY_PARSE_FAILED` | Malformed JSON |
 | 400 | `INVALID_ID` | Malformed ObjectId in a path parameter |
+| 400 | `INVALID_CURSOR` | Nearby `cursor` is malformed, tampered with, or from a different search; restart without it |
 | 400 | `INVALID_SIGNED_REQUEST` | Facebook `signed_request` failed signature or format checks |
 | 401 | `UNAUTHENTICATED` | No token sent |
 | 401 | `INVALID_TOKEN` | JWT or provider token is invalid or expired |
@@ -156,11 +157,13 @@ The whole `setting` object is replaced. Unknown keys are dropped.
 | `distance` | miles, 1–100 | `setting.distance`, otherwise 10 |
 | `level` | `Beginner` \| `Intermediate` \| `Advanced` | any |
 | `limit` | 1–50 | 20 |
+| `cursor` | `nextCursor` from the previous page | first page |
 
 ```json
 {
   "radiusMiles": 10,
   "count": 2,
+  "nextCursor": "q3Jx…",
   "users": [
     { "id": "665f…", "name": "Asha", "profilePic": "https://…", "level": "Advanced", "distanceMiles": 1 },
     { "id": "665e…", "name": "Ben", "level": "Beginner", "distanceMiles": 3 }
@@ -169,6 +172,10 @@ The whole `setting` object is replaced. Unknown keys are dropped.
 ```
 
 Only users who have opted in with `PATCH /users/me/discoverable` appear. The caller does not need to be discoverable to search. Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
+
+**Pagination.** To get the next page, repeat the request with the same `distance` and `level` plus `cursor=<nextCursor>`. `nextCursor` is `null` on the last page. Users at the same distance are ordered by ID, so no one is skipped or repeated between pages. The cursor is opaque and encrypted. Don't parse or build it.
+
+A cursor only works for the same caller, the same caller location and the same `distance` and `level` (an omitted `distance` resolves to `setting.distance`). If any of these changes, or the cursor is malformed, the API returns `400 INVALID_CURSOR`; start again without a cursor. Other users moving or opting out between pages can still shift results, as with any live list.
 
 ---
 

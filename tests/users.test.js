@@ -229,3 +229,161 @@ describe("GET /users/nearby", () => {
         expect(res.status).toBe(400);
     });
 });
+
+describe("GET /users/nearby pagination (B7)", () => {
+    const nearby = (token, query) =>
+        request(app).get("/api/v1/users/nearby").query(query).set("authorization", `Bearer ${token}`);
+
+    // Points spaced north of London at ~0.07 miles each, plus duplicates at the
+    // same spot to exercise the _id tie-break.
+    async function seed() {
+        const caller = await makeUser({ location: toPoint(LONDON) });
+        const names = [];
+        for (let i = 1; i <= 5; i += 1) {
+            const at = { lat: LONDON.lat + i * 0.001, lng: LONDON.lng };
+            for (const suffix of ["a", "b"]) {
+                const name = `P${i}${suffix}`;
+                await makeUser({ name, location: toPoint(at), discoverable: true });
+                names.push(name);
+            }
+        }
+        return { token: caller.token, names };
+    }
+
+    async function collectPages(token, query) {
+        const seen = [];
+        let cursor;
+        let pages = 0;
+        do {
+            const res = await nearby(token, { ...query, ...(cursor && { cursor }) });
+            expect(res.status).toBe(200);
+            expect(res.body.count).toBe(res.body.users.length);
+            seen.push(...res.body.users.map((u) => u.name));
+            cursor = res.body.nextCursor;
+            pages += 1;
+        } while (cursor && pages < 20);
+        return { seen, pages };
+    }
+
+    it("returns nextCursor: null when everything fits on one page", async () => {
+        const { token } = await seed();
+        const res = await nearby(token, { limit: 50 });
+        expect(res.body.count).toBe(10);
+        expect(res.body.nextCursor).toBeNull();
+    });
+
+    it.each([1, 3, 4])(
+        "walks every user exactly once, closest first, with limit=%i (ties included)",
+        async (limit) => {
+            const { token } = await seed();
+            const all = (await nearby(token, { limit: 50 })).body.users.map((u) => u.name);
+
+            const { seen, pages } = await collectPages(token, { limit });
+
+            expect(seen).toEqual(all);
+            expect(new Set(seen).size).toBe(10);
+            expect(pages).toBe(Math.ceil(10 / limit));
+        }
+    );
+
+    it("pages through a tie group larger than a page, in _id order", async () => {
+        const { token } = await makeUser({ location: toPoint(LONDON) });
+        const spot = toPoint(TWO_MILES_AWAY);
+        const ids = [];
+        for (let i = 0; i < 5; i += 1) {
+            ids.push(String((await makeUser({ name: `T${i}`, location: spot, discoverable: true })).user._id));
+        }
+        await makeUser({ name: "Closer", location: toPoint(LONDON), discoverable: true });
+        const aggregate = jest.spyOn(User, "aggregate");
+
+        try {
+            const first = await nearby(token, { limit: 2 });
+            // "Closer" plus the first tied user; the tie straddles the edge, so a second query ran.
+            expect(aggregate).toHaveBeenCalledTimes(2);
+
+            const { seen } = await collectPages(token, { limit: 2 });
+            const tiedIds = ids.slice().sort();
+            const byId = Object.fromEntries((await User.find({}, "name")).map((u) => [String(u._id), u.name]));
+
+            expect(first.body.users.map((u) => u.name)).toEqual(["Closer", byId[tiedIds[0]]]);
+            expect(seen).toEqual(["Closer", ...tiedIds.map((id) => byId[id])]);
+        } finally {
+            aggregate.mockRestore();
+        }
+    });
+
+    it("uses a single query when no tie straddles the page edge", async () => {
+        const { token } = await seed();
+        const aggregate = jest.spyOn(User, "aggregate");
+        try {
+            // limit=4 ends on P2b; the next row is P3a at a different distance.
+            await nearby(token, { limit: 4 }).expect(200);
+            expect(aggregate).toHaveBeenCalledTimes(1);
+        } finally {
+            aggregate.mockRestore();
+        }
+    });
+
+    it("keeps the level filter across pages", async () => {
+        const { token } = await makeUser({ location: toPoint(LONDON) });
+        for (let i = 1; i <= 4; i += 1) {
+            const at = toPoint({ lat: LONDON.lat + i * 0.001, lng: LONDON.lng });
+            await makeUser({ name: `A${i}`, location: at, level: "Advanced", discoverable: true });
+            await makeUser({ name: `B${i}`, location: at, level: "Beginner", discoverable: true });
+        }
+
+        const { seen } = await collectPages(token, { level: "Advanced", limit: 3 });
+
+        expect(seen).toEqual(["A1", "A2", "A3", "A4"]);
+    });
+
+    it.each([
+        ["a different level", { level: "Advanced" }],
+        ["a different radius", { distance: 50 }],
+    ])("rejects a cursor reused with %s", async (_label, change) => {
+        const { token } = await seed();
+        const first = await nearby(token, { limit: 2 });
+
+        const res = await nearby(token, { limit: 2, ...change, cursor: first.body.nextCursor });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("INVALID_CURSOR");
+    });
+
+    it("rejects a cursor from another user", async () => {
+        const { token } = await seed();
+        const other = await makeUser({ location: toPoint(LONDON) });
+        const first = await nearby(token, { limit: 2 });
+
+        const res = await nearby(other.token, { limit: 2, cursor: first.body.nextCursor });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("INVALID_CURSOR");
+    });
+
+    it("rejects a cursor after the caller moves", async () => {
+        const { token } = await seed();
+        const first = await nearby(token, { limit: 2 });
+        await request(app)
+            .put("/api/v1/users/me/location")
+            .set("authorization", `Bearer ${token}`)
+            .send({ location: TWO_MILES_AWAY })
+            .expect(200);
+
+        const res = await nearby(token, { limit: 2, cursor: first.body.nextCursor });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("INVALID_CURSOR");
+    });
+
+    it.each([
+        ["garbage", "abc"],
+        ["bad characters", "a+b/c="],
+        ["too long", "a".repeat(513)],
+    ])("rejects a %s cursor", async (_label, cursor) => {
+        const { token } = await makeUser({ location: toPoint(LONDON) });
+        const res = await nearby(token, { cursor });
+        expect(res.status).toBe(400);
+        expect(["INVALID_CURSOR", "VALIDATION_ERROR"]).toContain(res.body.error.code);
+    });
+});

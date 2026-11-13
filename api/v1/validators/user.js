@@ -37,6 +37,10 @@ const nearbyQuery = Joi.object({
     distance: Joi.number().min(1).max(100),
     level: Joi.string().valid(...LEVELS),
     limit: Joi.number().integer().min(1).max(50).default(20),
+    // Opaque value from a previous page's `nextCursor` (B7).
+    cursor: Joi.string()
+        .max(512)
+        .pattern(/^[A-Za-z0-9_-]+$/),
 });
 
 module.exports = { level, discoverable, location, setting, nearbyQuery };

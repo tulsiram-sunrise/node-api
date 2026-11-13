@@ -28,7 +28,7 @@ Before you finish any code change, run `npm run lint && npm test`.
 - `index.js` is the process entry (config check → DB connect → listen → graceful shutdown). `app.js` has `createApp()`, which has no side effects.
 - `startup/` holds config validation, the DB connection plus global Mongoose settings, security middleware, and routes.
 - `middleware/` holds request context, Joi `validate`, `notFound` and the single `error` handler.
-- `lib/` holds the logger, `tokens` (JWT), `HttpError` and `geo`. It never imports from `api/`.
+- `lib/` holds the logger, `tokens` (JWT), `HttpError`, `geo` and `cursor` (encrypted pagination cursors). It never imports from `api/`.
 - In `api/v1/`: `routes/` contain wiring only, `validators/` hold Joi, `controllers/` are thin, `services/` make outbound HTTP calls, and `models/` hold Mongoose.
 - `tests/*.test.js` use supertest against `createApp()`. `tests/helpers/db.js` starts mongodb-memory-server.
 

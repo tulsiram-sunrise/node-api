@@ -4,7 +4,7 @@ Last updated: 2026-11-07 · Branch: `upgrade/modernize-api` · Target version: 2
 
 ## Status
 
-v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2 done).
+v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2 and 6.4 done).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -193,7 +193,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | 6.1 | Metrics, error tracking, alerts, on-call runbook | B21, B22, B23 | 2.5 |
 | 6.2 | (Done 2026-11-13) Server request timeouts and query `maxTimeMS` | B10 | 0.5 |
 | 6.3 | Redis-backed rate limiter | B19 | 1 |
-| 6.4 | Cursor pagination for nearby search | B7 | 1 |
+| 6.4 | (Done 2026-11-13) Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
 | 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
 | 6.7 | Data model cleanup: `currentCountryCode` decision, compound geo index | B12, B14 | 0.5 |
@@ -267,6 +267,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Phase 6.4 (B7) done: encrypted cursor pagination for nearby search, stable on distance ties, without a blocking sort |
 | 2026-11-13 | PR #31 merged Phase 5.1 into master. Phase 6.2 (B10) done: HTTP request, header and keep-alive timeouts; MongoDB `maxTimeMS` with 503 `QUERY_TIMEOUT` |
 | 2026-11-11 | Phase 5.1: B6, B1, B13, B17, B24 and config tests done (PR #30); CI lockfile fix on PR #29; nearby opt-in decided (ADR-011) |
 | 2026-11-07 | Added gap analysis, restructuring and standards plans; roadmap rewritten as Phases 6–10 |
