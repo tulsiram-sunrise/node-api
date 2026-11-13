@@ -46,7 +46,15 @@
             "middleware/**/*.js",
             "startup/**/*.js",
             "app.js"
-        ]
+        ],
+        "coverageThreshold": {
+            "global": {
+                "statements": 92,
+                "branches": 80,
+                "functions": 94,
+                "lines": 95
+            }
+        }
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
