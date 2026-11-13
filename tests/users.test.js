@@ -104,22 +104,77 @@ describe("profile endpoints", () => {
         expect(ok.body.location).toEqual(LONDON);
     });
 
-    it("PUT /me/setting stores settings and strips unknown keys", async () => {
-        const { token } = await makeUser();
-        const res = await request(app)
-            .put("/api/v1/users/me/setting")
-            .set("authorization", `Bearer ${token}`)
-            .send({
-                distance: 5,
-                preferredTime: [{ day: "Monday", timing: "18:00-20:00" }],
-                isAdmin: true,
-            });
+    const putSetting = (token, body) =>
+        request(app).put("/api/v1/users/me/setting").set("authorization", `Bearer ${token}`).send(body);
+
+    it("PUT /me/setting stores ranges and a canonical time zone, and strips unknown keys (B11)", async () => {
+        const { user, token } = await makeUser();
+        const res = await putSetting(token, {
+            distance: 5,
+            preferredTime: [{ day: "Monday", start: "18:00", end: "20:00" }],
+            timeZone: "US/Eastern",
+            isAdmin: true,
+        });
         expect(res.status).toBe(200);
         expect(res.body.setting).toEqual({
             distance: 5,
-            preferredTime: [{ day: "Monday", timing: "18:00-20:00" }],
+            // timing is the deprecated echo for older app versions.
+            preferredTime: [{ day: "Monday", start: "18:00", end: "20:00", timing: "18:00-20:00" }],
+            timeZone: "America/New_York",
         });
         expect(res.body.isAdmin).toBeUndefined();
+        const stored = await User.findById(user._id).lean();
+        expect(stored.setting.preferredTime).toEqual([{ day: "Monday", start: "18:00", end: "20:00" }]);
+    });
+
+    it("PUT /me/setting converts legacy free-text timing from older app versions (B11)", async () => {
+        const { token } = await makeUser();
+        const res = await putSetting(token, {
+            distance: 10,
+            preferredTime: [
+                { day: "Monday", timing: "6-8pm" },
+                { day: "Tuesday", timing: "Evening" },
+                { day: "Sunday", timing: "9pm - 12am" },
+            ],
+        });
+        expect(res.status).toBe(200);
+        expect(res.body.setting.preferredTime.map(({ day, start, end }) => [day, start, end])).toEqual([
+            ["Monday", "18:00", "20:00"],
+            ["Tuesday", "17:00", "21:00"],
+            ["Sunday", "21:00", "24:00"],
+        ]);
+    });
+
+    it("PUT /me/setting keeps the stored time zone when an older app omits it", async () => {
+        const { token } = await makeUser();
+        await putSetting(token, { distance: 5, preferredTime: [], timeZone: "Europe/London" }).expect(200);
+        const res = await putSetting(token, { distance: 7, preferredTime: [{ day: "Friday", timing: "18:00-19:00" }] });
+        expect(res.status).toBe(200);
+        expect(res.body.setting).toMatchObject({ distance: 7, timeZone: "Europe/London" });
+    });
+
+    it.each([
+        ["ambiguous legacy timing", { day: "Monday", timing: "6-8" }, /could not be read/],
+        ["end before start", { day: "Monday", start: "20:00", end: "18:00" }, /must be after/],
+        ["equal start and end", { day: "Monday", start: "18:00", end: "18:00" }, /must be after/],
+        ["a 24:00 start", { day: "Monday", start: "24:00", end: "24:00" }, /start/],
+        ["a missing end", { day: "Monday", start: "18:00" }, /end/],
+        ["both timing and a range", { day: "Monday", timing: "6-8pm", start: "18:00", end: "20:00" }, /./],
+        ["neither timing nor a range", { day: "Monday" }, /./],
+        ["a bad time format", { day: "Monday", start: "6pm", end: "8pm" }, /start/],
+    ])("PUT /me/setting rejects %s", async (_label, item, message) => {
+        const { token } = await makeUser();
+        const res = await putSetting(token, { distance: 5, preferredTime: [item] });
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("VALIDATION_ERROR");
+        expect(JSON.stringify(res.body.error)).toMatch(message);
+    });
+
+    it("PUT /me/setting rejects an unknown time zone", async () => {
+        const { token } = await makeUser();
+        const res = await putSetting(token, { distance: 5, preferredTime: [], timeZone: "Mars/Olympus" });
+        expect(res.status).toBe(400);
+        expect(JSON.stringify(res.body.error)).toMatch(/IANA time zone/);
     });
 
     it("DELETE /me removes the account; the token then stops working", async () => {
@@ -200,6 +255,21 @@ describe("PATCH /users/me (B5)", () => {
         await expect(
             User.findByIdAndUpdate(user._id, { $set: { countryCode: "XX" } }, { runValidators: true })
         ).rejects.toThrow(/countryCode/);
+    });
+
+    it("enforces preferred-time ranges and canonical time zones in the model too (B11)", async () => {
+        const setting = (preferredTime, timeZone) => new User({ provider: "google", setting: { distance: 5, preferredTime, timeZone } });
+
+        expect(setting([{ day: "Monday", start: "18:00", end: "20:00" }], "Europe/London").validateSync()).toBeUndefined();
+        expect(setting([{ day: "Monday", start: "20:00", end: "18:00" }]).validateSync().message).toMatch(/end must be after start/);
+        expect(setting([{ day: "Monday", start: "6pm", end: "20:00" }]).validateSync().message).toMatch(/start/);
+        expect(setting([{ day: "Monday", timing: "6-8pm" }]).validateSync().message).toMatch(/start/);
+        expect(setting([], "US/Eastern").validateSync().message).toMatch(/time zone/);
+
+        const { user } = await makeUser();
+        await expect(
+            User.findByIdAndUpdate(user._id, { $set: { "setting.timeZone": "Mars/Olympus" } }, { runValidators: true })
+        ).rejects.toThrow(/time zone/);
     });
 
     it("can't change email or other fields", async () => {

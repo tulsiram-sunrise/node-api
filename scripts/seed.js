@@ -3,7 +3,7 @@
  * Create sample users round a point, for testing nearby search by hand (GAP B27).
  *
  *   npm run db:seed                                   # 200 users within 20 miles of central London
- *   npm run db:seed -- --lat 40.7128 --lng -74.006    # round another point
+ *   npm run db:seed -- --lat 40.7128 --lng -74.006 --tz America/New_York   # round another point
  *   npm run db:seed -- --count 500 --radius 50 --seed 7
  *   npm run db:seed -- --reset                        # delete earlier seed users first
  *   npm run db:seed -- --remove                       # only delete seed users
@@ -19,6 +19,7 @@ const mongoose = require("mongoose");
 const db = require("../startup/db");
 const { User } = require("../api/v1/models/user");
 const { SEED_PREFIX, generateSeedUsers } = require("./lib/seedUsers");
+const { canonicalTimeZone } = require("../lib/timeRange");
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 const LIMITS = { count: [1, 5000], radius: [0.1, 100], lat: [-85, 85], lng: [-180, 180] };
@@ -35,8 +36,11 @@ function readOptions(argv) {
             reset: { type: "boolean", default: false },
             remove: { type: "boolean", default: false },
             "allow-remote": { type: "boolean", default: false },
+            tz: { type: "string", default: "Europe/London" },
         },
     });
+    const timeZone = canonicalTimeZone(values.tz);
+    if (!timeZone) throw new Error("--tz must be an IANA time zone such as Europe/London");
     const num = (name) => {
         const n = Number(values[name]);
         const [min, max] = LIMITS[name] ?? [-Infinity, Infinity];
@@ -50,6 +54,7 @@ function readOptions(argv) {
         center: { lat: num("lat"), lng: num("lng") },
         radiusMiles: num("radius"),
         seed: Math.trunc(num("seed")),
+        timeZone,
         reset: values.reset,
         remove: values.remove,
         allowRemote: values["allow-remote"],

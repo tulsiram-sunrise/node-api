@@ -11,7 +11,15 @@ const { toPoint } = require("../../lib/geo");
 const SEED_PREFIX = "seed-";
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const TIMINGS = ["Morning", "Lunchtime", "Afternoon", "Evening", "18:00-20:00", "07:00-08:30"];
+// Preferred-time ranges (B11), in the seed's time zone.
+const RANGES = [
+    { start: "06:00", end: "08:30" },
+    { start: "12:00", end: "14:00" },
+    { start: "13:00", end: "17:00" },
+    { start: "17:00", end: "21:00" },
+    { start: "18:00", end: "20:00" },
+    { start: "19:30", end: "24:00" },
+];
 const MILES_PER_DEGREE_LAT = 69.0;
 
 /** Small seeded PRNG (mulberry32), so a given --seed always gives the same users. */
@@ -42,10 +50,10 @@ const round6 = (n) => Math.round(n * 1e6) / 1e6;
 const pick = (list, random) => list[Math.floor(random() * list.length)];
 
 /**
- * @param {{ count: number, center: { lat: number, lng: number }, radiusMiles: number, seed?: number, discoverableShare?: number }} options
+ * @param {{ count: number, center: { lat: number, lng: number }, radiusMiles: number, seed?: number, discoverableShare?: number, timeZone?: string }} options
  * @returns {object[]} plain user documents, ready for an upsert keyed on google.id
  */
-function generateSeedUsers({ count, center, radiusMiles, seed = 1, discoverableShare = 0.8 }) {
+function generateSeedUsers({ count, center, radiusMiles, seed = 1, discoverableShare = 0.8, timeZone = "Europe/London" }) {
     const random = prng(seed);
     const now = new Date();
     return Array.from({ length: count }, (_, i) => {
@@ -62,7 +70,8 @@ function generateSeedUsers({ count, center, radiusMiles, seed = 1, discoverableS
             ...(discoverable ? { discoverableSince: now } : {}),
             setting: {
                 distance: pick([5, 10, 20, 50], random),
-                preferredTime: days.map((day) => ({ day, timing: pick(TIMINGS, random) })),
+                preferredTime: days.map((day) => ({ day, ...pick(RANGES, random) })),
+                timeZone,
             },
         };
     });

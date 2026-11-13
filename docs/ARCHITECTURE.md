@@ -26,6 +26,7 @@ lib/                     Framework-free helpers
   httpError.js           HttpError(status, message, code, details)
   geo.js                 miles↔meters, {lat,lng} → GeoJSON Point
   cursor.js              Encrypted, tamper-proof pagination cursors (AES-256-GCM, key from jwt.secret via HKDF)
+  timeRange.js           Preferred-time ranges: HH:mm checks, v1 free-text parser, IANA time-zone check (B11)
   countries.js           ISO 3166-1 alpha-2 country codes (B12)
   securityLog.js         securityEvent(): one structured info line per security event (see SECURITY.md)
 api/
@@ -93,7 +94,7 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 | `discoverable` | boolean | Default `false`; only `true` users appear in nearby search |
 | `discoverableSince` | Date | When the user last opted in (consent record); removed on opt-out |
 | `location` | GeoJSON Point | `[lng, lat]`; compound index `{ location: "2dsphere", discoverable: 1, level: 1 }` (B14), so nearby filters run inside the index; returned to the owner as `{ lat, lng }` |
-| `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, timing }` |
+| `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, start, end }` (`HH:mm`, B11; `lib/timeRange.js`), `timeZone` (canonical IANA name). JSON adds a deprecated `timing` string per entry |
 | `countryCode` | string | ISO 3166-1 alpha-2 (`lib/countries.js`), set by the user with `PATCH /users/me`; replaces v1 `currentCountryCode` (B12). Not in nearby results |
 | `createdAt`, `updatedAt` | Date | Mongoose timestamps |
 

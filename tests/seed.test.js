@@ -78,6 +78,9 @@ describe("seed script options and safety", () => {
         expect(() => readOptions(["--radius", "101"])).toThrow(/--radius/);
         expect(() => readOptions(["--lat", "91"])).toThrow(/--lat/);
         expect(() => readOptions(["--bogus"])).toThrow();
+        expect(readOptions([]).timeZone).toBe("Europe/London");
+        expect(readOptions(["--tz", "US/Eastern"]).timeZone).toBe("America/New_York");
+        expect(() => readOptions(["--tz", "Mars/Olympus"])).toThrow(/--tz/);
     });
 
     it("parses hosts from single, replica-set and SRV URIs without credentials", () => {

@@ -1,6 +1,7 @@
 const Joi = require("joi");
 const { LEVELS, DAYS } = require("../models/user");
 const { COUNTRY_CODES } = require("../../../lib/countries");
+const { START, END, isValidRange, parseTiming, canonicalTimeZone } = require("../../../lib/timeRange");
 
 const level = Joi.object({
     level: Joi.string()
@@ -37,19 +38,36 @@ const location = Joi.object({
     }).required(),
 });
 
+// B11: each preferred time is { day, start, end } ("HH:mm", start before end,
+// end may be "24:00"). Older app versions may still send { day, timing } as
+// free text. It is converted when it can be read unambiguously ("6-8pm",
+// "18:00-20:00", "Evening"), and rejected otherwise.
+const preferredTimeItem = Joi.object({
+    day: Joi.string()
+        .valid(...DAYS)
+        .required(),
+    start: Joi.string().pattern(START),
+    end: Joi.string().pattern(END),
+    timing: Joi.string().trim().max(50),
+})
+    .xor("start", "timing")
+    .and("start", "end")
+    .oxor("end", "timing")
+    .custom((item, helpers) => {
+        const range = item.timing === undefined ? { start: item.start, end: item.end } : parseTiming(item.timing);
+        if (!range) return helpers.message('"timing" could not be read; send "start" and "end" as HH:mm instead');
+        if (!isValidRange(range)) return helpers.message('"end" must be after "start"');
+        return { day: item.day, ...range };
+    });
+
 const setting = Joi.object({
     distance: Joi.number().min(1).max(100).required(),
-    preferredTime: Joi.array()
-        .items(
-            Joi.object({
-                day: Joi.string()
-                    .valid(...DAYS)
-                    .required(),
-                timing: Joi.string().trim().max(50).required(),
-            })
-        )
-        .max(21)
-        .required(),
+    preferredTime: Joi.array().items(preferredTimeItem).max(21).required(),
+    // IANA name such as "Europe/London". Optional so older app versions keep
+    // working; omitting it leaves the stored zone unchanged.
+    timeZone: Joi.string()
+        .max(64)
+        .custom((tz, helpers) => canonicalTimeZone(tz) ?? helpers.message('"timeZone" must be an IANA time zone such as "Europe/London"')),
 });
 
 const nearbyQuery = Joi.object({

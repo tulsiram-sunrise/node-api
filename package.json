@@ -21,6 +21,7 @@
         "migrate:down": "migrate-mongo down",
         "db:find-duplicates": "node scripts/find-duplicate-users.js",
         "db:seed": "node scripts/seed.js",
+        "db:preview-preferred-time": "node scripts/preview-preferred-time.js",
         "loadtest": "node scripts/loadtest.js"
     },
     "author": "Tulsi Ram Maurya",
@@ -51,10 +52,10 @@
         ],
         "coverageThreshold": {
             "global": {
-                "statements": 92,
-                "branches": 80,
-                "functions": 94,
-                "lines": 95
+                "statements": 93,
+                "branches": 84,
+                "functions": 95,
+                "lines": 96
             }
         }
     },
