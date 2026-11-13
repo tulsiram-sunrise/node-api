@@ -65,6 +65,8 @@ The users-index migration refuses to run while duplicate provider IDs exist (ste
 
 The users nearby-index migration (B14) builds the compound geo index, then drops the plain `location_2dsphere` one. For a moment the collection has two geo indexes. That is safe: v1 runs no geo queries, and v2 passes `key: "location"` to `$geoNear`, which otherwise refuses to choose between two indexes. Keep `key` in any new `$geoNear` call.
 
+The users preferred-time migration (B11) converts free-text `timing` values into `start`/`end` ranges and **drops values it can't read** (such as `6-8` or `after work`). Before running it, run `npm run db:preview-preferred-time`. It changes nothing, reports how many entries would be converted and dropped, and lists the most common unreadable values (exit 1 if anything would be dropped). If the drops are too many, extend `parseTiming` in `lib/timeRange.js` first. `down` restores ranges as `HH:mm-HH:mm` text but can't bring back dropped values, so take the backup first (B15).
+
 The users country-code migration (B12) removes v1 `currentCountryCode` values, which are IDs into a `referencecodes` collection this service never had. If that collection exists in production, the migration stops, because the IDs might map to ISO codes. Either write a one-off script that sets `countryCode` from it, or confirm the data isn't needed and drop the collection. Then rerun `npm run migrate:up`. The removal can't be undone, so take the backup first (B15).
 
 Check: `npm run migrate:status` shows no `PENDING` rows.

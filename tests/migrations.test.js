@@ -10,6 +10,7 @@ const usersIndexes = require("../migrations/20261111000000-users-indexes");
 const deletionIndexes = require("../migrations/20261111000100-deletionrequests-indexes");
 const nearbyIndex = require("../migrations/20261113000000-users-nearby-index");
 const countryCode = require("../migrations/20261113000100-users-country-code");
+const preferredTime = require("../migrations/20261113000200-users-preferred-time");
 
 const run = promisify(execFile);
 const ROOT = path.join(__dirname, "..");
@@ -138,6 +139,78 @@ describe("migration: users country code (B12)", () => {
     });
 });
 
+describe("migration: users preferred time (B11)", () => {
+    const legacy = [
+        { name: "A", setting: { distance: 5, preferredTime: [
+            { day: "Monday", timing: "6-8pm" },
+            { day: "Tuesday", timing: "after work" },
+            { day: "Friday", timing: "Evening" },
+        ] } },
+        { name: "B", setting: { distance: 9, preferredTime: [{ day: "Sunday", timing: "6-8" }] } },
+        { name: "C", setting: { distance: 3, preferredTime: [{ day: "Monday", start: "07:00", end: "08:00" }], timeZone: "UTC" } },
+        { name: "D" },
+    ];
+    const byName = async () =>
+        (await db.collection("users").find({}, { projection: { _id: 0 } }).sort({ name: 1 }).toArray());
+    let out;
+    beforeEach(() => {
+        out = jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+    });
+    afterEach(() => out.mockRestore());
+
+    it("converts readable entries, drops unreadable ones, reports both, and leaves new-shape users alone", async () => {
+        await db.collection("users").insertMany(structuredClone(legacy));
+
+        await preferredTime.up(db);
+
+        expect(await byName()).toEqual([
+            { name: "A", setting: { distance: 5, preferredTime: [
+                { day: "Monday", start: "18:00", end: "20:00" },
+                { day: "Friday", start: "17:00", end: "21:00" },
+            ] } },
+            { name: "B", setting: { distance: 9, preferredTime: [] } },
+            legacy[2],
+            legacy[3],
+        ]);
+        const printed = out.mock.calls.map(([s]) => s).join("");
+        expect(printed).toMatch(/2 user\(s\) with legacy entries; 2 entr\(ies\) converted, 2 unreadable entr\(ies\) dropped/);
+        expect(printed).toMatch(/"after work" x1/);
+        expect(printed).toMatch(/"6-8" x1/);
+
+        // Idempotent: nothing legacy remains.
+        await preferredTime.up(db);
+        expect(out.mock.calls.at(-1)[0]).toMatch(/0 user\(s\) with legacy entries/);
+    });
+
+    it("down turns ranges back into timing strings and removes timeZone", async () => {
+        await db.collection("users").insertMany(structuredClone(legacy));
+        await preferredTime.up(db);
+        await preferredTime.down(db);
+
+        const rows = await byName();
+        expect(rows[0].setting.preferredTime).toEqual([
+            { day: "Monday", timing: "18:00-20:00" },
+            { day: "Friday", timing: "17:00-21:00" },
+        ]);
+        expect(rows[2].setting).toEqual({ distance: 3, preferredTime: [{ day: "Monday", timing: "07:00-08:00" }] });
+    });
+
+    it("preview script reports the same outcome without changing anything", async () => {
+        out.mockRestore();
+        const dbName = db.databaseName;
+        await db.collection("users").insertMany(structuredClone(legacy));
+        const env = { ...process.env, napi_db: `${server.getUri()}${dbName}` };
+        const script = path.join(ROOT, "scripts", "preview-preferred-time.js");
+
+        const err = await run(process.execPath, [script], { cwd: ROOT, env }).catch((e) => e);
+
+        expect(err.code).toBe(1); // something would be dropped
+        expect(err.stdout).toMatch(/2 entr\(ies\) would be converted, 2 unreadable entr\(ies\) would be dropped/);
+        expect(await db.collection("users").countDocuments({ "setting.preferredTime.timing": { $exists: true } })).toBe(2);
+        out = jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+    });
+});
+
 describe("migration: deletionrequests indexes", () => {
     it("creates the unique code and TTL indexes; down tolerates a missing collection", async () => {
         await deletionIndexes.up(db);
@@ -186,6 +259,7 @@ describe("migrate-mongo CLI", () => {
         expect(up.stdout).toMatch(/MIGRATED UP: 20261111000100-deletionrequests-indexes\.js/);
         expect(up.stdout).toMatch(/MIGRATED UP: 20261113000000-users-nearby-index\.js/);
         expect(up.stdout).toMatch(/MIGRATED UP: 20261113000100-users-country-code\.js/);
+        expect(up.stdout).toMatch(/MIGRATED UP: 20261113000200-users-preferred-time\.js/);
 
         const status = await run(process.execPath, [cli, "status"], { cwd: ROOT, env });
         expect(status.stdout).not.toMatch(/PENDING/);

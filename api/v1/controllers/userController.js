@@ -134,8 +134,13 @@ module.exports = {
         res.json(await updateMe(req, { location: toPoint(req.body.location) }));
     },
 
+    /**
+     * Field by field, so a client that omits timeZone (older app versions, B11)
+     * doesn't wipe the zone stored by a newer one.
+     */
     updateSetting: async (req, res) => {
-        res.json(await updateMe(req, { setting: req.body }));
+        const update = Object.fromEntries(Object.entries(req.body).map(([key, value]) => [`setting.${key}`, value]));
+        res.json(await updateMe(req, update));
     },
 
     deleteMe: async (req, res) => {

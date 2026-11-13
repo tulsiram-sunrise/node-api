@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { COUNTRY_CODES } = require("../../../lib/countries");
+const { START, END, isValidRange, formatTiming, canonicalTimeZone } = require("../../../lib/timeRange");
 
 const PROVIDERS = ["facebook", "google"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
@@ -17,12 +18,34 @@ const pointSchema = new mongoose.Schema(
 const settingSchema = new mongoose.Schema(
     {
         distance: { type: Number, min: 1, max: 100 },
+        // B11: comparable ranges in the user's own time zone (setting.timeZone).
         preferredTime: [
             new mongoose.Schema(
-                { day: { type: String, enum: DAYS }, timing: String },
+                {
+                    day: { type: String, enum: DAYS, required: true },
+                    start: { type: String, match: START, required: true },
+                    end: {
+                        type: String,
+                        match: END,
+                        required: true,
+                        validate: {
+                            validator(end) {
+                                // `this` is the subdocument on save, but a Query on update validators.
+                                const start = typeof this?.get === "function" ? this.get("start") : undefined;
+                                return start === undefined || isValidRange({ start, end });
+                            },
+                            message: "end must be after start",
+                        },
+                    },
+                },
                 { _id: false }
             ),
         ],
+        // IANA name, stored canonical (B11).
+        timeZone: {
+            type: String,
+            validate: { validator: (tz) => canonicalTimeZone(tz) === tz, message: "unknown or non-canonical time zone" },
+        },
     },
     { _id: false }
 );
@@ -58,6 +81,10 @@ const userSchema = new mongoose.Schema(
                 if (ret.location?.coordinates) {
                     const [lng, lat] = ret.location.coordinates;
                     ret.location = { lat, lng };
+                }
+                // Deprecated (B11): "HH:mm-HH:mm" for app versions that still read `timing`.
+                if (Array.isArray(ret.setting?.preferredTime)) {
+                    ret.setting.preferredTime = ret.setting.preferredTime.map((t) => ({ ...t, timing: formatTiming(t) }));
                 }
                 return ret;
             },

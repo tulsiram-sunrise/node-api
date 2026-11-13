@@ -155,14 +155,18 @@ Opts in to (or out of) appearing in other users' nearby search. Users are **not*
 ```json
 {
   "distance": 10,
-  "preferredTime": [{ "day": "Monday", "timing": "18:00-20:00" }]
+  "preferredTime": [{ "day": "Monday", "start": "18:00", "end": "20:00" }],
+  "timeZone": "Europe/London"
 }
 ```
 
 - `distance`: 1–100 miles. It is the default radius for nearby search.
-- `preferredTime`: up to 21 entries. `day` is a full English weekday name; `timing` is free text of up to 50 characters.
+- `preferredTime`: up to 21 entries (B11). `day` is a full English weekday name. `start` and `end` are `HH:mm` on a 24-hour clock in the user's time zone; `start` must be before `end`, and `end` may be `24:00` (until midnight). A range that crosses midnight is sent as two entries, one per day.
+- `timeZone`: an IANA name such as `Europe/London`. Aliases are stored in canonical form (`US/Eastern` becomes `America/New_York`). Optional; if omitted, the stored zone is kept.
 
-The whole `setting` object is replaced. Unknown keys are dropped.
+`distance` and `preferredTime` replace the stored values. Unknown keys are dropped.
+
+**Older app versions (deprecated).** An entry may still be `{ "day": "Monday", "timing": "6-8pm" }`. The server converts `timing` when it can read it unambiguously: `18:00-20:00`, `6-8pm`, `6:30am-8pm`, `7 to 9 pm`, `Morning` (06:00–12:00), `Lunchtime` (12:00–14:00), `Afternoon` (12:00–17:00) and `Evening` (17:00–21:00). Anything else (for example `6-8`, which could be morning or evening) returns `400 VALIDATION_ERROR` asking for `start` and `end`. Responses include `timing: "HH:mm-HH:mm"` on every entry so older apps can still display it. Both will be removed when older app versions are retired (the v1 sunset, proposed for 6 months after release; see the decisions in [PLAN.md](PLAN.md)).
 
 ### `GET /users/nearby`
 
@@ -206,7 +210,11 @@ A cursor only works for the same caller, the same caller location and the same `
   "location": { "lat": 51.5074, "lng": -0.1278 },
   "discoverable": true,
   "discoverableSince": "2026-11-07T10:02:00.000Z",
-  "setting": { "distance": 10, "preferredTime": [{ "day": "Monday", "timing": "18:00-20:00" }] },
+  "setting": {
+    "distance": 10,
+    "preferredTime": [{ "day": "Monday", "start": "18:00", "end": "20:00", "timing": "18:00-20:00" }],
+    "timeZone": "Europe/London"
+  },
   "createdAt": "2026-11-07T10:00:00.000Z",
   "updatedAt": "2026-11-07T10:05:00.000Z"
 }

@@ -29,7 +29,8 @@ npm start
 | `npm run migrate:status` / `migrate:up` / `migrate:down` | Show, apply or roll back database migrations (`migrations/`) |
 | `npm run db:find-duplicates` | List users sharing a Facebook/Google ID; exits 1 if any |
 | `npm run loadtest` | Load test `/auth/google` (provider stubbed), `/users/me` and `/users/nearby` against an in-memory database. Default 50 rps for 30 s each; exits 1 if p95 reaches 200 ms or over 1% of requests fail. Options: `--rps`, `--duration` (s), `--users`, `--budget-ms`, `--only login,me,nearby`. See [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
-| `npm run db:seed` | Create 200 sample users round central London for trying nearby search locally. Options: `--lat`, `--lng`, `--radius` (miles), `--count`, `--seed`, `--reset`, `--remove`. Refuses production and non-local databases |
+| `npm run db:preview-preferred-time` | Read-only: shows what the B11 preferred-time migration would convert and drop; exits 1 if anything would be dropped |
+| `npm run db:seed` | Create 200 sample users round central London for trying nearby search locally. Options: `--lat`, `--lng`, `--radius` (miles), `--count`, `--seed`, `--tz`, `--reset`, `--remove`. Refuses production and non-local databases |
 
 Docker: `docker build -t node-api . && docker run -p 5000:5000 --env-file .env node-api`
 
