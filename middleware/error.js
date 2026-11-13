@@ -1,6 +1,9 @@
 const logger = require("../lib/logger");
 const HttpError = require("../lib/httpError");
 
+// MongoDB server error code for a query that ran past its maxTimeMS.
+const MAX_TIME_MS_EXPIRED = 50;
+
 // Express identifies error handlers by their 4-argument signature.
 module.exports = (err, req, res, next) => {
     if (res.headersSent) return next(err);
@@ -18,6 +21,11 @@ module.exports = (err, req, res, next) => {
         status = 400;
         code = "VALIDATION_ERROR";
         message = "Invalid data";
+    } else if (err.code === MAX_TIME_MS_EXPIRED) {
+        // Query hit maxTimeMS (GAP B10): transient overload, safe for the client to retry.
+        status = 503;
+        code = "QUERY_TIMEOUT";
+        message = "The request took too long; please retry";
     } else if (err.expose && err.status >= 400 && err.status < 500) {
         // body-parser / http-errors (malformed JSON, payload too large, ...)
         status = err.status;

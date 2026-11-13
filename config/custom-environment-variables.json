@@ -10,6 +10,12 @@
         "__name": "napi_trustProxy",
         "__format": "json"
     },
+    "timeouts": {
+        "requestMs": { "__name": "napi_requestTimeoutMs", "__format": "json" },
+        "headersMs": { "__name": "napi_headersTimeoutMs", "__format": "json" },
+        "keepAliveMs": { "__name": "napi_keepAliveTimeoutMs", "__format": "json" },
+        "queryMs": { "__name": "napi_queryTimeoutMs", "__format": "json" }
+    },
     "jwt": {
         "secret": "napi_JWTPrivateKey",
         "expiresIn": "napi_jwtExpiresIn"

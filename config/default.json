@@ -4,6 +4,12 @@
     "db": "mongodb://127.0.0.1:27017/nodeapi",
     "autoIndex": true,
     "trustProxy": false,
+    "timeouts": {
+        "requestMs": 30000,
+        "headersMs": 10000,
+        "keepAliveMs": 65000,
+        "queryMs": 5000
+    },
     "jwt": {
         "secret": "",
         "expiresIn": "1d",

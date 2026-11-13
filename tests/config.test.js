@@ -34,6 +34,7 @@ const baseValues = (overrides = {}) => ({
         facebook: { appId: "fb-app", appSecret: "fb-secret" },
         google: { clientId: "google-client" },
     },
+    timeouts: { requestMs: 30000, headersMs: 10000, keepAliveMs: 65000, queryMs: 5000 },
     ...overrides,
 });
 
@@ -81,5 +82,30 @@ describe("validateConfig", () => {
         const { run, logger } = load(values);
         expect(run).not.toThrow();
         expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/No social login provider/));
+    });
+
+    it.each([
+        ["zero", { queryMs: 0 }],
+        ["negative", { requestMs: -1 }],
+        ["non-integer", { keepAliveMs: 1.5 }],
+        ["a string", { headersMs: "10000" }],
+    ])("refuses a timeout that is %s", (_label, override) => {
+        const values = baseValues();
+        Object.assign(values.timeouts, override);
+        const { run } = load(values);
+        expect(run).toThrow(/must be a positive integer/);
+    });
+
+    it("refuses a headers timeout longer than the request timeout", () => {
+        const values = baseValues();
+        values.timeouts.headersMs = values.timeouts.requestMs + 1;
+        const { run } = load(values);
+        expect(run).toThrow(/headersMs must not exceed/);
+    });
+
+    it("accepts the shipped default timeouts", () => {
+        const defaults = require("../config/default.json");
+        const { run } = load(baseValues({ timeouts: defaults.timeouts }));
+        expect(run).not.toThrow();
     });
 });

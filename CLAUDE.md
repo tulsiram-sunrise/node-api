@@ -6,7 +6,7 @@ Project memory for AI coding assistants working in this repository. Keep it shor
 
 An Express 5 + MongoDB (Mongoose 9) REST API. It handles Facebook/Google social login (issuing JWTs), user profiles (level, location, settings) and nearby-user search. It uses CommonJS JavaScript on Node 22 or later.
 
-Current work: v2.0.0 on branch `upgrade/modernize-api`. Phases 1–4 are done; Phase 5 (release plus P0 gaps) is next. See `docs/PLAN.md`.
+Current work: v2.0.0 is merged into `master`, not released. Phases 1–4 and the Phase 5.1 code items are done; Phase 5 still waits on decisions (B2, B15, release owner and date). Phase 6 (production baseline) is in progress, one feature branch per item. See `docs/PLAN.md`.
 
 Planned (not started, don't do ahead of time): Phase 7 moves code to `src/modules/*` (`docs/RESTRUCTURE.md`); Phase 8 moves to ESM, TypeScript, Vitest, Zod and pino (`docs/STANDARDS.md`). Until then, follow the current CommonJS/Joi/Jest conventions. When a task touches a gap from `docs/GAP_ANALYSIS.md`, refer to its ID (e.g. B6, A14).
 

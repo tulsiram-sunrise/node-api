@@ -15,7 +15,7 @@ Do not open a public issue. Email the maintainer (the repository owner) with the
 | User location | Unwanted discovery; exact position disclosed, or trilateration | Opt-in discoverability with consent timestamp; coordinates never returned to others; whole-mile rounding; caller excluded from results; owner-only `location` |
 | Personal data | Leaking emails or provider IDs | `select: false`; `toJSON` strips internal fields; nearby search projects public fields only |
 | Database | NoSQL operator injection; mass assignment | Joi with `stripUnknown`; Mongoose `sanitizeFilter` and `strictQuery` |
-| Availability | Brute force, flooding, large payloads, hung upstreams | Rate limits (300 overall and 20 on auth per 15 min per IP); 10 kB body cap; 5 s provider timeouts |
+| Availability | Brute force, flooding, large payloads, hung upstreams | Rate limits (300 overall and 20 on auth per 15 min per IP); 10 kB body cap; 5 s provider timeouts; 30 s request and 10 s header timeouts (slowloris); 5 s MongoDB `maxTimeMS` |
 | Error channel | Stack traces or internal messages exposed | A single error handler; generic 500 message; request ID for correlation |
 | Browser clients | Clickjacking, MIME sniffing, cross-origin abuse | helmet defaults; CORS allow-list (empty by default) |
 | Supply chain | Vulnerable or malicious packages; leaked secrets | Minimal dependencies; CI production audit; gitleaks scan of full history in CI; `npm ci --ignore-scripts` in the image |

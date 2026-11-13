@@ -4,7 +4,7 @@ Last updated: 2026-11-07 · Branch: `upgrade/modernize-api` · Target version: 2
 
 ## Status
 
-v2.0.0 is built and tested on `upgrade/modernize-api` but not merged or released. Phases 1–4 are done. Phase 5 (release and migration) is next.
+v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2 done).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ v2.0.0 is built and tested on `upgrade/modernize-api` but not merged or released
 | 3. Profile and nearby features | Six endpoints under `/api/v1/users` | Done |
 | 4. Quality and delivery | 34 tests, ESLint, Dockerfile, CI | Done |
 | 5. Release and migration | P0 gaps, client changes, data migration, staged rollout | Next |
-| 6. Production baseline | Basic P1 gaps: metrics, alerts, error tracking, pagination, timeouts, availability matching | Planned |
+| 6. Production baseline | Basic P1 gaps: metrics, alerts, error tracking, pagination, timeouts, availability matching | In progress |
 | 7. Restructure | Feature modules in `src/`, service layer, explicit dependencies ([RESTRUCTURE.md](RESTRUCTURE.md)) | Planned |
 | 8. Modern standards | Node 26, ESM, TypeScript, Vitest, Zod, pino, OpenAPI, supply chain ([STANDARDS.md](STANDARDS.md)) | Planned |
 | 9. Identity and security | Refresh tokens + JWKS, roles/admin, audit, tracing, retention, pentest | Planned |
@@ -191,7 +191,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | # | Item | Gap IDs | Effort |
 | --- | --- | --- | --- |
 | 6.1 | Metrics, error tracking, alerts, on-call runbook | B21, B22, B23 | 2.5 |
-| 6.2 | Server request timeouts and query `maxTimeMS` | B10 | 0.5 |
+| 6.2 | (Done 2026-11-13) Server request timeouts and query `maxTimeMS` | B10 | 0.5 |
 | 6.3 | Redis-backed rate limiter | B19 | 1 |
 | 6.4 | Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
@@ -267,6 +267,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | PR #31 merged Phase 5.1 into master. Phase 6.2 (B10) done: HTTP request, header and keep-alive timeouts; MongoDB `maxTimeMS` with 503 `QUERY_TIMEOUT` |
 | 2026-11-11 | Phase 5.1: B6, B1, B13, B17, B24 and config tests done (PR #30); CI lockfile fix on PR #29; nearby opt-in decided (ADR-011) |
 | 2026-11-07 | Added gap analysis, restructuring and standards plans; roadmap rewritten as Phases 6–10 |
 | 2026-11-07 | Phases 1–4 completed on `upgrade/modernize-api`; plan written |
