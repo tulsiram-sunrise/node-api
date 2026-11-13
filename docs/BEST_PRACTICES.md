@@ -18,7 +18,7 @@ This document explains the why behind the [conventions](CONVENTIONS.md). Each pr
 - **Keep private fields private by default.** Use `select: false` on sensitive paths and a `toJSON` transform. Explicit `$project` stages in aggregations.
 - **Sanitize filters.** `sanitizeFilter` and `strictQuery` are set globally in `startup/db.js`. Validation is the first defence; these are the second.
 - **Use `127.0.0.1`, not `localhost`,** in local connection strings. Node 17 and later may resolve `localhost` to IPv6 `::1`, which a default `mongod` doesn't listen on.
-- **Use GeoJSON and `2dsphere`** for anything spatial. `$geoNear` must be the first pipeline stage and needs exactly one geo index on the collection.
+- **Use GeoJSON and `2dsphere`** for anything spatial. `$geoNear` must be the first pipeline stage. Pass `key` so it still works when a migration briefly leaves two geo indexes. Put equality filters that every query uses after the geo field in a compound index, so they are checked in the index instead of on documents.
 
 ## Validation and input
 

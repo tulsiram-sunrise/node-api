@@ -171,6 +171,9 @@ module.exports = {
             distanceField: "distance",
             maxDistance: milesToMeters(radiusMiles),
             spherical: true,
+            // Name the geo field: $geoNear refuses to guess while a migration
+            // briefly has two 2dsphere indexes on users (B14).
+            key: "location",
             query,
         };
         const { page, hasMore } = await nearbyPage(geoNear, after, limit);

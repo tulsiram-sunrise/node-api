@@ -63,6 +63,8 @@ npm run migrate:up       # applies them; stops on the first failure
 
 The users-index migration refuses to run while duplicate provider IDs exist (step 3). Migrations are recorded in the `changelog` collection and guarded by a lock, so running them twice or from two places is safe.
 
+The users nearby-index migration (B14) builds the compound geo index, then drops the plain `location_2dsphere` one. For a moment the collection has two geo indexes. That is safe: v1 runs no geo queries, and v2 passes `key: "location"` to `$geoNear`, which otherwise refuses to choose between two indexes. Keep `key` in any new `$geoNear` call.
+
 Check: `npm run migrate:status` shows no `PENDING` rows.
 
 ## 5. Deploy
