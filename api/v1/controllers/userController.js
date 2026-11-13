@@ -1,9 +1,11 @@
+const crypto = require("node:crypto");
 const mongoose = require("mongoose");
 const { User } = require("../models/user");
 const HttpError = require("../../../lib/httpError");
 const cursors = require("../../../lib/cursor");
 const { milesToMeters, metersToMiles, toPoint } = require("../../../lib/geo");
 const { securityEvent } = require("../../../lib/securityLog");
+const { overlapSlots } = require("../../../lib/availability");
 
 const DEFAULT_NEARBY_MILES = 10;
 const NEARBY_CURSOR = "nearby";
@@ -16,12 +18,22 @@ const userNotFound = () => new HttpError(404, "User not found", "USER_NOT_FOUND"
  * pages (another caller, the caller moved, different radius or level), the
  * distances or filters no longer line up, so the cursor is rejected.
  */
-const nearbyContext = (sub, coordinates, radiusMiles, level) => ({
+const nearbyContext = (sub, coordinates, radiusMiles, level, matchKey) => ({
     sub: String(sub),
     at: [...coordinates],
     r: radiusMiles,
     l: level ?? null,
+    // With matchTimes (B16): a digest of the caller's slots and zone, so editing
+    // them between pages invalidates the cursor.
+    t: matchKey ?? null,
 });
+
+const availabilityKey = (setting) =>
+    crypto
+        .createHash("sha256")
+        .update(JSON.stringify([setting.timeZone, setting.preferredTime.map(({ day, start, end }) => [day, start, end])]))
+        .digest("base64url")
+        .slice(0, 16);
 
 function readNearbyCursor(cursor, context) {
     const payload = cursors.open(cursor, NEARBY_CURSOR);
@@ -51,7 +63,7 @@ const byDistanceThenId = (a, b) => a.distance - b.distance || String(a._id).loca
  * fetched separately (a narrow distance band) and ordered by _id, so the cursor
  * never skips or repeats anyone.
  */
-async function nearbyPage(geoNear, after, limit) {
+async function nearbyPage(geoNear, after, limit, projection = NEARBY_PROJECTION) {
     // minDistance is inclusive, so also skip users at the cursor's distance already returned.
     const afterCursor = after
         ? [
@@ -62,7 +74,7 @@ async function nearbyPage(geoNear, after, limit) {
               },
           ]
         : [];
-    const run = (geo, stages) => User.aggregate([{ $geoNear: geo }, ...afterCursor, ...stages, NEARBY_PROJECTION]);
+    const run = (geo, stages) => User.aggregate([{ $geoNear: geo }, ...afterCursor, ...stages, projection]);
 
     // One extra row tells us whether another page exists.
     const rows = await run(after ? { ...geoNear, minDistance: after.distance } : geoNear, [{ $limit: limit + 1 }]);
@@ -80,6 +92,42 @@ async function nearbyPage(geoNear, after, limit) {
     ]);
     const closer = rows.filter((r) => r.distance < edge).sort(byDistanceThenId);
     return { page: [...closer, ...tied].slice(0, limit), hasMore: true };
+}
+
+// Availability matching (B16): candidates are scanned in distance order in
+// batches and filtered in code, because each has its own time zone. The scan is
+// capped per request, so a page can hold fewer than `limit` users while
+// nextCursor still points further out.
+const MATCH_BATCH = 100;
+const MATCH_MAX_SCAN = 1000;
+const MATCH_PROJECTION = {
+    $project: { ...NEARBY_PROJECTION.$project, "setting.preferredTime": 1, "setting.timeZone": 1 },
+};
+
+/**
+ * @returns {Promise<{ page: object[], hasMore: boolean, last: object | undefined }>}
+ *   `last` is the position the next page continues after.
+ */
+async function matchingPage(geoNear, after, limit, mine, now) {
+    const page = [];
+    let position = after;
+    let lastRow;
+    let scanned = 0;
+    for (;;) {
+        const { page: batch, hasMore } = await nearbyPage(geoNear, position, MATCH_BATCH, MATCH_PROJECTION);
+        for (const row of batch) {
+            scanned += 1;
+            lastRow = row;
+            const theirs = { slots: row.setting?.preferredTime, timeZone: row.setting?.timeZone ?? mine.timeZone };
+            const overlap = overlapSlots(mine, theirs, now);
+            if (!overlap.length) continue;
+            if (page.length === limit) return { page, hasMore: true, last: page.at(-1) };
+            page.push({ ...row, overlapSlots: overlap });
+        }
+        if (!hasMore) return { page, hasMore: false, last: page.at(-1) };
+        if (scanned >= MATCH_MAX_SCAN) return { page, hasMore: true, last: lastRow };
+        position = { distance: lastRow.distance, id: lastRow._id };
+    }
 }
 
 async function updateMe(req, update) {
@@ -157,7 +205,7 @@ module.exports = {
      * result, so it is encrypted (lib/cursor.js).
      */
     nearby: async (req, res) => {
-        const { distance, level, limit, cursor } = req.validated.query;
+        const { distance, level, limit, cursor, matchTimes } = req.validated.query;
 
         const me = await User.findById(req.auth.sub).select("location setting");
         if (!me) throw userNotFound();
@@ -170,7 +218,18 @@ module.exports = {
         const query = { _id: { $ne: me._id }, discoverable: true };
         if (level) query.level = level;
 
-        const context = nearbyContext(me._id, me.location.coordinates, radiusMiles, level);
+        let mine;
+        if (matchTimes) {
+            const setting = me.setting?.toObject?.() ?? {};
+            if (!setting.preferredTime?.length || !setting.timeZone) {
+                throw new HttpError(409, "Set your preferred times and time zone first", "AVAILABILITY_REQUIRED");
+            }
+            mine = { slots: setting.preferredTime, timeZone: setting.timeZone };
+            query["setting.preferredTime.0"] = { $exists: true };
+        }
+
+        const matchKey = matchTimes ? availabilityKey(me.setting) : null;
+        const context = nearbyContext(me._id, me.location.coordinates, radiusMiles, level, matchKey);
         const after = cursor ? readNearbyCursor(cursor, context) : null;
 
         const geoNear = {
@@ -183,8 +242,9 @@ module.exports = {
             key: "location",
             query,
         };
-        const { page, hasMore } = await nearbyPage(geoNear, after, limit);
-        const last = page.at(-1);
+        const { page, hasMore, last } = matchTimes
+            ? await matchingPage(geoNear, after, limit, mine, new Date())
+            : await nearbyPage(geoNear, after, limit).then((r) => ({ ...r, last: r.page.at(-1) }));
         const nextCursor = hasMore
             ? cursors.seal({ ctx: context, d: last.distance, id: String(last._id) }, NEARBY_CURSOR)
             : null;
@@ -199,6 +259,8 @@ module.exports = {
                 profilePic: u.profilePic,
                 level: u.level,
                 distanceMiles: Math.max(1, Math.ceil(metersToMiles(u.distance))),
+                // Shared availability in the caller's own time zone (B16).
+                ...(matchTimes ? { overlapSlots: u.overlapSlots } : {}),
             })),
         });
     },

@@ -74,6 +74,8 @@ const nearbyQuery = Joi.object({
     distance: Joi.number().min(1).max(100),
     level: Joi.string().valid(...LEVELS),
     limit: Joi.number().integer().min(1).max(50).default(20),
+    // B16: only users whose preferred times overlap the caller's.
+    matchTimes: Joi.boolean().default(false),
     // Opaque value from a previous page's `nextCursor` (B7).
     cursor: Joi.string()
         .max(512)

@@ -561,3 +561,123 @@ describe("GET /users/nearby pagination (B7)", () => {
         expect(["INVALID_CURSOR", "VALIDATION_ERROR"]).toContain(res.body.error.code);
     });
 });
+
+describe("GET /users/nearby?matchTimes=true (B16)", () => {
+    const slot = (day, start, end) => ({ day, start, end });
+    const evenings = [slot("Monday", "18:00", "21:00"), slot("Wednesday", "18:00", "21:00")];
+    const search = (token, query = "") =>
+        request(app).get(`/api/v1/users/nearby?matchTimes=true${query}`).set("authorization", `Bearer ${token}`);
+    const near = (name, preferredTime, timeZone = "Europe/London", extra = {}) =>
+        makeUser({ name, location: toPoint(TWO_MILES_AWAY), discoverable: true, setting: { distance: 10, preferredTime, timeZone }, ...extra });
+    const caller = (preferredTime = evenings, timeZone = "Europe/London") =>
+        makeUser({ location: toPoint(LONDON), setting: { distance: 10, preferredTime, timeZone } });
+
+    it("requires the caller's preferred times and time zone", async () => {
+        const noTimes = await makeUser({ location: toPoint(LONDON), setting: { distance: 10, preferredTime: [], timeZone: "UTC" } });
+        const noZone = await makeUser({ location: toPoint(LONDON), setting: { distance: 10, preferredTime: evenings } });
+        for (const { token } of [noTimes, noZone]) {
+            const res = await search(token);
+            expect(res.status).toBe(409);
+            expect(res.body.error.code).toBe("AVAILABILITY_REQUIRED");
+        }
+    });
+
+    it("returns only users with overlapping times, with the overlap in the caller's zone", async () => {
+        const { token } = await caller();
+        await near("Overlap", [slot("Monday", "20:00", "23:00")]);
+        await near("Paris", [slot("Wednesday", "21:00", "23:00")], "Europe/Paris");
+        await near("Mornings", [slot("Monday", "07:00", "09:00")]);
+        await near("NoTimes", []);
+        await near("NoZone", [slot("Wednesday", "17:00", "19:00")], undefined); // assumed to share the caller's zone
+
+        const res = await search(token);
+        expect(res.status).toBe(200);
+        const byName = Object.fromEntries(res.body.users.map((u) => [u.name, u.overlapSlots]));
+        expect(Object.keys(byName).sort()).toEqual(["NoZone", "Overlap", "Paris"]);
+        expect(byName.Overlap).toEqual([slot("Monday", "20:00", "21:00")]);
+        expect(byName.Paris).toEqual([slot("Wednesday", "20:00", "21:00")]); // Paris 21:00 = London 20:00 in either season
+        expect(byName.NoZone).toEqual([slot("Wednesday", "18:00", "19:00")]);
+        // Nothing private leaks with the extra projection.
+        expect(res.body.users[0]).not.toHaveProperty("setting");
+        expect(res.body.users[0]).not.toHaveProperty("location");
+    });
+
+    it("leaves plain nearby search unchanged (no overlapSlots, no time filter)", async () => {
+        const { token } = await caller();
+        await near("Mornings", [slot("Monday", "07:00", "09:00")]);
+        const res = await request(app).get("/api/v1/users/nearby").set("authorization", `Bearer ${token}`);
+        expect(res.body.users.map((u) => u.name)).toEqual(["Mornings"]);
+        expect(res.body.users[0]).not.toHaveProperty("overlapSlots");
+    });
+
+    it("pages through matches beyond one scan batch without gaps or repeats", async () => {
+        const { token } = await caller();
+        const docs = Array.from({ length: 250 }, (_, i) => ({
+            provider: "google",
+            google: { id: `bulk-${i}` },
+            name: `B${i}`,
+            discoverable: true,
+            // Spread outwards so distance order is meaningful; every third user matches.
+            location: toPoint({ lat: LONDON.lat + 0.0005 * (i + 1), lng: LONDON.lng }),
+            setting: { distance: 10, timeZone: "Europe/London", preferredTime: [i % 3 === 0 ? slot("Monday", "19:00", "20:00") : slot("Friday", "07:00", "08:00")] },
+        }));
+        await User.insertMany(docs);
+
+        const seen = [];
+        let cursor = "";
+        do {
+            const res = await search(token, `&limit=20${cursor ? `&cursor=${cursor}` : ""}`);
+            expect(res.status).toBe(200);
+            seen.push(...res.body.users.map((u) => u.name));
+            cursor = res.body.nextCursor;
+        } while (cursor);
+
+        const expected = docs.filter((_, i) => i % 3 === 0).map((d) => d.name);
+        expect(seen).toEqual(expected);
+    });
+
+    it("caps the scan per request: a page may be short while nextCursor continues", async () => {
+        const { token } = await caller();
+        const misses = Array.from({ length: 1050 }, (_, i) => ({
+            provider: "google",
+            google: { id: `miss-${i}` },
+            name: `M${i}`,
+            discoverable: true,
+            location: toPoint({ lat: LONDON.lat + 0.00005 * (i + 1), lng: LONDON.lng }),
+            setting: { distance: 10, timeZone: "Europe/London", preferredTime: [slot("Friday", "07:00", "08:00")] },
+        }));
+        await User.insertMany(misses);
+        await makeUser({ name: "FarMatch", location: toPoint({ lat: LONDON.lat + 0.1, lng: LONDON.lng }), discoverable: true, setting: { distance: 10, timeZone: "Europe/London", preferredTime: evenings } });
+
+        const first = await search(token);
+        expect(first.status).toBe(200);
+        expect(first.body.users).toEqual([]);
+        expect(first.body.nextCursor).toEqual(expect.any(String));
+
+        const second = await search(token, `&cursor=${first.body.nextCursor}`);
+        expect(second.body.users.map((u) => u.name)).toEqual(["FarMatch"]);
+        expect(second.body.nextCursor).toBeNull();
+    });
+
+    it("rejects a cursor after the caller changes their times, or reused without matchTimes", async () => {
+        const { user, token } = await caller();
+        for (let i = 0; i < 3; i += 1) await near(`U${i}`, evenings);
+        const first = await search(token, "&limit=1");
+        expect(first.body.nextCursor).toEqual(expect.any(String));
+
+        const plain = await request(app)
+            .get(`/api/v1/users/nearby?limit=1&cursor=${first.body.nextCursor}`)
+            .set("authorization", `Bearer ${token}`);
+        expect(plain.body.error.code).toBe("INVALID_CURSOR");
+
+        await User.updateOne({ _id: user._id }, { $set: { "setting.preferredTime": [slot("Monday", "18:00", "20:00")] } });
+        const changed = await search(token, `&limit=1&cursor=${first.body.nextCursor}`);
+        expect(changed.body.error.code).toBe("INVALID_CURSOR");
+    });
+
+    it("rejects a non-boolean matchTimes", async () => {
+        const { token } = await caller();
+        const res = await request(app).get("/api/v1/users/nearby?matchTimes=maybe").set("authorization", `Bearer ${token}`);
+        expect(res.status).toBe(400);
+    });
+});
