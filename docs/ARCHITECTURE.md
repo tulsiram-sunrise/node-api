@@ -26,6 +26,7 @@ lib/                     Framework-free helpers
   httpError.js           HttpError(status, message, code, details)
   geo.js                 miles↔meters, {lat,lng} → GeoJSON Point
   cursor.js              Encrypted, tamper-proof pagination cursors (AES-256-GCM, key from jwt.secret via HKDF)
+  availability.js        Weekly availability overlap across time zones for nearby matchTimes (B16)
   timeRange.js           Preferred-time ranges: HH:mm checks, v1 free-text parser, IANA time-zone check (B11)
   countries.js           ISO 3166-1 alpha-2 country codes (B12)
   securityLog.js         securityEvent(): one structured info line per security event (see SECURITY.md)

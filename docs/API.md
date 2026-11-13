@@ -42,6 +42,7 @@ Every error uses the same shape:
 | 404 | `USER_NOT_FOUND` | The token's user no longer exists |
 | 404 | `DELETION_REQUEST_NOT_FOUND` | Unknown data-deletion confirmation code |
 | 409 | `LOCATION_REQUIRED` | Nearby search before setting a location |
+| 409 | `AVAILABILITY_REQUIRED` | `matchTimes=true` before setting preferred times and a time zone (`PUT /users/me/setting`) |
 | 413 | `ENTITY_TOO_LARGE` | Body over 10 kB |
 | 429 | `RATE_LIMITED` | Rate limit exceeded; wait `Retry-After` seconds |
 | 500 | `INTERNAL_ERROR` | Unexpected server error; no details are exposed |
@@ -176,6 +177,7 @@ Opts in to (or out of) appearing in other users' nearby search. Users are **not*
 | `level` | `Beginner` \| `Intermediate` \| `Advanced` | any |
 | `limit` | 1–50 | 20 |
 | `cursor` | `nextCursor` from the previous page | first page |
+| `matchTimes` | `true` \| `false` | `false` |
 
 ```json
 {
@@ -191,9 +193,20 @@ Opts in to (or out of) appearing in other users' nearby search. Users are **not*
 
 Only users who have opted in with `PATCH /users/me/discoverable` appear. The caller does not need to be discoverable to search. Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
 
-**Pagination.** To get the next page, repeat the request with the same `distance` and `level` plus `cursor=<nextCursor>`. `nextCursor` is `null` on the last page. Users at the same distance are ordered by ID, so no one is skipped or repeated between pages. The cursor is opaque and encrypted. Don't parse or build it.
+**Matching on availability (`matchTimes=true`, B16).** Only users whose preferred times overlap the caller's are returned. Each result gets `overlapSlots`: the shared times as `{ day, start, end }` in the **caller's** time zone, split at midnight.
 
-A cursor only works for the same caller, the same caller location and the same `distance` and `level` (an omitted `distance` resolves to `setting.distance`). If any of these changes, or the cursor is malformed, the API returns `400 INVALID_CURSOR`; start again without a cursor. Other users moving or opting out between pages can still shift results, as with any live list.
+```json
+{ "id": "665f…", "name": "Asha", "level": "Advanced", "distanceMiles": 1,
+  "overlapSlots": [{ "day": "Monday", "start": "19:00", "end": "21:00" }] }
+```
+
+- The caller needs preferred times and a `timeZone` (`PUT /users/me/setting`), otherwise `409 AVAILABILITY_REQUIRED`. A nearby user without a stored time zone is assumed to share the caller's.
+- Times in different zones are compared at each zone's current UTC offset. In the few weeks when two zones change clocks on different dates, a match can be an hour off.
+- Each request scans at most 1,000 nearby users, closest first. In a dense area **a page can hold fewer than `limit` users, or none, while `nextCursor` is not `null`**. Keep paging until `nextCursor` is `null`.
+
+**Pagination.** To get the next page, repeat the request with the same `distance`, `level` and `matchTimes` plus `cursor=<nextCursor>`. `nextCursor` is `null` on the last page. Users at the same distance are ordered by ID, so no one is skipped or repeated between pages. The cursor is opaque and encrypted. Don't parse or build it.
+
+A cursor only works for the same caller, the same caller location, the same `distance`, `level` and `matchTimes`, and (with `matchTimes`) the same caller preferred times and time zone. An omitted `distance` resolves to `setting.distance`. If any of these changes, or the cursor is malformed, the API returns `400 INVALID_CURSOR`; start again without a cursor. Other users moving or opting out between pages can still shift results, as with any live list.
 
 ---
 

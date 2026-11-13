@@ -65,7 +65,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 
 | ID | Gap | Why it matters | Fix | Pri | Effort |
 | --- | --- | --- | --- | --- | --- |
-| B16 | Nearby search ignores `preferredTime` | Users enter availability, but matching only uses distance and level | Add `?matchTimes=true`: return only users with an overlapping day/time slot, and add `overlapSlots` to each result. Needs B11 | P1 | 2 |
+| B16 | (Done 2026-11-13, PLAN 6.6: `?matchTimes=true` with `overlapSlots` in the caller's zone; scans at most 1,000 users per request, so pages can be short) Nearby search ignores `preferredTime` | Users enter availability, but matching only uses distance and level | Add `?matchTimes=true`: return only users with an overlapping day/time slot, and add `overlapSlots` to each result. Needs B11 | P1 | 2 |
 | B17 | Discoverability is not a user choice | Everyone with a location is visible to everyone | `setting.discoverable` (default `false`), filtered in `$geoNear` (PLAN 5.1 decision) | P0 | 0.5 |
 
 ### Reliability and performance

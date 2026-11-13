@@ -4,7 +4,7 @@ Last updated: 2026-11-07 · Branch: `upgrade/modernize-api` · Target version: 2
 
 ## Status
 
-v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4, 6.5, 6.7, 6.8 and 6.9 done).
+v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4, 6.5, 6.6, 6.7, 6.8 and 6.9 done; 6.1 and 6.3 wait on decisions).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | 6.3 | Redis-backed rate limiter | B19 | 1 |
 | 6.4 | (Done 2026-11-13) Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | (Done 2026-11-13) Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
-| 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
+| 6.6 | (Done 2026-11-13) Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
 | 6.7 | (Done 2026-11-13) Data model cleanup: `currentCountryCode` replaced by ISO `countryCode` (B12), compound geo index (B14) | B12, B14 | 0.5 |
 | 6.8 | (Done 2026-11-13) `PATCH /users/me` for name and photo; security event log | B5, B4 | 1 |
 | 6.9 | (Done 2026-11-13) Load test with performance budget; seed script; coverage threshold. The load test peak of 50 rps is an assumption until the expected peak is agreed | B18, B27, B28 | 1.75 |
@@ -269,6 +269,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Phase 6.6 B16 done: `GET /users/nearby?matchTimes=true` returns only users with overlapping preferred times, with `overlapSlots` in the caller's zone |
 | 2026-11-13 | Phase 6.5 B11 done: preferred times are `{ day, start, end }` with `setting.timeZone`; older apps' `timing` is converted and echoed; migration plus read-only preview; coverage thresholds raised to 93/84/95/96 |
 | 2026-11-13 | Phase 6.7 B12 done (6.7 complete): `currentCountryCode` replaced by ISO 3166-1 alpha-2 `countryCode`, editable via `PATCH /users/me`; migration removes the old IDs |
 | 2026-11-13 | Phase 6.9 B18 done: `npm run loadtest`, fixed-rate load test with p95 < 200 ms budget at an assumed 50 rps; 6.9 complete |
