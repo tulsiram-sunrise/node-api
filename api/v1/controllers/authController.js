@@ -5,11 +5,24 @@ const { DeletionRequest } = require("../models/deletionRequest");
 const oauth = require("../services/oauth");
 const tokens = require("../../../lib/tokens");
 const HttpError = require("../../../lib/httpError");
-const logger = require("../../../lib/logger");
+const { securityEvent } = require("../../../lib/securityLog");
 
-async function issueToken(res, identity) {
-    const user = await User.upsertOAuthUser(identity);
+/** Verify the provider token, then find or create the user and issue our JWT. */
+async function login(req, res, provider, verify) {
+    let identity;
+    try {
+        identity = await verify();
+    } catch (err) {
+        // Only rejected tokens are security events; 501/502 are config and outage conditions.
+        if (err instanceof HttpError && err.status === 401) {
+            securityEvent(req, "auth.login_failed", { provider, reason: err.code });
+        }
+        throw err;
+    }
+
+    const { user, created } = await User.upsertOAuthUser(identity);
     const token = tokens.sign(user);
+    securityEvent(req, "auth.login", { userId: String(user._id), provider, newUser: created });
     res.setHeader("x-auth-token", token);
     res.status(200).json(user);
 }
@@ -20,15 +33,9 @@ function publicBaseUrl(req) {
 }
 
 module.exports = {
-    facebook: async (req, res) => {
-        const identity = await oauth.verifyFacebookToken(req.body.access_token);
-        await issueToken(res, identity);
-    },
+    facebook: (req, res) => login(req, res, "facebook", () => oauth.verifyFacebookToken(req.body.access_token)),
 
-    google: async (req, res) => {
-        const identity = await oauth.verifyGoogleToken(req.body.id_token);
-        await issueToken(res, identity);
-    },
+    google: (req, res) => login(req, res, "google", () => oauth.verifyGoogleToken(req.body.id_token)),
 
     /**
      * Facebook data-deletion callback (GAP B1). Meta POSTs a form-encoded
@@ -42,11 +49,11 @@ module.exports = {
         const code = crypto.randomBytes(16).toString("hex");
         await DeletionRequest.create({ code, provider: "facebook" });
 
-        // No user identifiers in the log; the code is enough to trace it.
-        logger.info("Facebook data deletion processed", {
+        // No user identifiers: the user asked for erasure, and the code is enough to trace it.
+        securityEvent(req, "user.deleted", {
+            via: "facebook_data_deletion",
             confirmationCode: code,
             userFound: Boolean(deleted),
-            requestId: req.id,
         });
 
         res.json({

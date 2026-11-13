@@ -38,8 +38,8 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | ID | Gap | Why it matters | Fix | Pri | Effort |
 | --- | --- | --- | --- | --- | --- |
 | B3 | No logout or token revocation | A stolen or leaked token is valid for 24 h; account deletion doesn't end sessions | Refresh tokens + sessions collection (PLAN 9.1); until then, shorten `expiresIn` | P1 | 3–4 |
-| B4 | No security event log | You can't answer "who signed in when, from where" during an incident | Log `auth.login`, `auth.login_failed`, `user.deleted` with user ID, IP and user agent at `info` (no tokens); retain 90 days | P1 | 0.5 |
-| B5 | Name and photo can't be edited | They are set once from the provider. Users can't fix a wrong name or remove a photo | `PATCH /users/me` for `name` (1–100 chars, trimmed) and `profilePic` (null to remove) | P1 | 0.5 |
+| B4 | (Done 2026-11-13, PLAN 6.8; also logs profile edits and discoverability changes; 90-day retention is set up with 6.1) No security event log | You can't answer "who signed in when, from where" during an incident | Log `auth.login`, `auth.login_failed`, `user.deleted` with user ID, IP and user agent at `info` (no tokens); retain 90 days | P1 | 0.5 |
+| B5 | (Done 2026-11-13, PLAN 6.8; photo must be https) Name and photo can't be edited | They are set once from the provider. Users can't fix a wrong name or remove a photo | `PATCH /users/me` for `name` (1–100 chars, trimmed) and `profilePic` (null to remove) | P1 | 0.5 |
 
 ### API design
 

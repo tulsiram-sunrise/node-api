@@ -26,6 +26,7 @@ lib/                     Framework-free helpers
   httpError.js           HttpError(status, message, code, details)
   geo.js                 miles↔meters, {lat,lng} → GeoJSON Point
   cursor.js              Encrypted, tamper-proof pagination cursors (AES-256-GCM, key from jwt.secret via HKDF)
+  securityLog.js         securityEvent(): one structured info line per security event (see SECURITY.md)
 api/
   routes.js              JSON body parser (10 kB) + /v1 mount
   v1/
@@ -73,6 +74,7 @@ Client SDK ──token──▶ POST /api/v1/auth/{facebook|google}
                          │    Google:   verifyIdToken(audience = client IDs)
                          │ User.upsertOAuthUser(identity)   (atomic findOneAndUpdate upsert, retried once on E11000)
                          │ tokens.sign(user)
+                         │ securityEvent auth.login (auth.login_failed if the provider rejects the token)
                          ◀── 200 user JSON + x-auth-token header
 ```
 

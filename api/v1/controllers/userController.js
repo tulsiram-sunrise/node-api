@@ -3,6 +3,7 @@ const { User } = require("../models/user");
 const HttpError = require("../../../lib/httpError");
 const cursors = require("../../../lib/cursor");
 const { milesToMeters, metersToMiles, toPoint } = require("../../../lib/geo");
+const { securityEvent } = require("../../../lib/securityLog");
 
 const DEFAULT_NEARBY_MILES = 10;
 const NEARBY_CURSOR = "nearby";
@@ -94,6 +95,20 @@ module.exports = {
         res.json(user);
     },
 
+    /** Edit name and photo (B5). `profilePic: null` removes the photo. */
+    updateProfile: async (req, res) => {
+        const $set = {};
+        const $unset = {};
+        if (req.body.name !== undefined) $set.name = req.body.name;
+        if (req.body.profilePic === null) $unset.profilePic = 1;
+        else if (req.body.profilePic !== undefined) $set.profilePic = req.body.profilePic;
+
+        const user = await User.findByIdAndUpdate(req.auth.sub, { $set, $unset }, updateOptions);
+        if (!user) throw userNotFound();
+        securityEvent(req, "user.profile_updated", { userId: String(user._id), fields: Object.keys(req.body) });
+        res.json(user);
+    },
+
     updateLevel: async (req, res) => {
         res.json(await updateMe(req, { level: req.body.level }));
     },
@@ -109,6 +124,7 @@ module.exports = {
             updateOptions
         );
         if (!user) throw userNotFound();
+        securityEvent(req, "user.discoverable_changed", { userId: String(user._id), discoverable });
         res.json(user);
     },
 
@@ -123,6 +139,7 @@ module.exports = {
     deleteMe: async (req, res) => {
         const result = await User.deleteOne({ _id: req.auth.sub });
         if (result.deletedCount === 0) throw userNotFound();
+        securityEvent(req, "user.deleted", { userId: String(req.auth.sub), via: "self" });
         res.status(204).end();
     },
 

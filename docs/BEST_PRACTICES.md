@@ -44,6 +44,7 @@ This document explains the why behind the [conventions](CONVENTIONS.md). Each pr
 - **Log once, where the error is handled.** The error middleware logs 5xx errors; don't also log in controllers.
 - **Use structured logs in production** (`logging.format: "json"`), so fields like `requestId` can be searched.
 - **Correlate.** Every response carries `x-request-id`; clients should send it to support.
+- **Record security events with `securityEvent(req, name, fields)`** (`lib/securityLog.js`) when adding anything that signs in, deletes data or changes privacy settings. Pass IDs and field names, never values. The event list is in SECURITY.md.
 - **Separate liveness and readiness.** `/health` should almost never fail. `/ready` reflects dependencies, so traffic shifts away instead of the pod restarting.
 
 ## Resilience

@@ -7,6 +7,18 @@ const level = Joi.object({
         .required(),
 });
 
+// PATCH /users/me (B5). At least one field; null removes the photo. Only https
+// URLs, so clients never render javascript:/data: links. The server never
+// fetches the URL (no SSRF).
+const profile = Joi.object({
+    name: Joi.string().trim().min(1).max(100),
+    profilePic: Joi.string()
+        .trim()
+        .uri({ scheme: ["https"] })
+        .max(2048)
+        .allow(null),
+}).min(1);
+
 const discoverable = Joi.object({
     discoverable: Joi.boolean().strict().required(),
 });
@@ -43,4 +55,4 @@ const nearbyQuery = Joi.object({
         .pattern(/^[A-Za-z0-9_-]+$/),
 });
 
-module.exports = { level, discoverable, location, setting, nearbyQuery };
+module.exports = { profile, level, discoverable, location, setting, nearbyQuery };
