@@ -60,6 +60,7 @@ This document explains the why behind the [conventions](CONVENTIONS.md). Each pr
 - **Use a real database engine.** `mongodb-memory-server` runs real `mongod`, so indexes, geo queries and the upsert race are actually tested.
 - **Mock only at the network edge,** meaning provider services and `fetch`.
 - **Test security as features.** Wrong algorithm, wrong audience, injection payloads, oversized bodies and leaked fields each have a test. Keep it that way.
+- **Load test at a fixed arrival rate** (`npm run loadtest`, B18). Real users don't wait for each other, so send requests on a schedule and measure latency from the scheduled start. Otherwise a slow server lowers the rate it is tested at and hides its own queueing (coordinated omission). Run it before a release and after changes to hot paths (login, `/users/me`, nearby search, indexes). It runs locally against an in-memory database, so read the numbers as a regression baseline. Windows timers fire in steps of about 15 ms, which adds up to that much to measured latency there. The default 50 rps is an assumed peak; replace it once the real peak is known.
 
 ## Dependencies and supply chain
 
