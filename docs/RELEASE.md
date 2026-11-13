@@ -74,7 +74,7 @@ Check: `npm run migrate:status` shows no `PENDING` rows.
 ## 5. Deploy
 
 1. Deploy the image to staging. Run a manual Facebook login, a Google login, `GET /users/me`, a location update and a nearby search.
-2. Deploy to production with a rolling update. The readiness probe is `/ready` and the liveness probe is `/health`.
+2. Deploy to production with a rolling update. The readiness probe is `/ready` and the liveness probe is `/health`. Run **exactly one** instance (for example `replicas: 1`; a rolling update may briefly run two). Rate limits are counted in memory per instance until PLAN 6.3 ships.
 3. Publish the client updates.
 4. Announce that users must sign in again, and that they must turn on visibility to appear in nearby search. Until users opt in, nearby results will be empty or sparse.
 

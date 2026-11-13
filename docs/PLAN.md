@@ -194,7 +194,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | --- | --- | --- | --- |
 | 6.1 | Metrics, error tracking, alerts, on-call runbook | B21, B22, B23 | 2.5 |
 | 6.2 | (Done 2026-11-13) Server request timeouts and query `maxTimeMS` | B10 | 0.5 |
-| 6.3 | Redis-backed rate limiter | B19 | 1 |
+| 6.3 | (Deferred 2026-11-13: production runs a single instance. Do this before running a second one) Redis-backed rate limiter | B19 | 1 |
 | 6.4 | (Done 2026-11-13) Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | (Done 2026-11-13) Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
 | 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
@@ -261,6 +261,8 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 | Access-token lifetime until 9.1 ships | Keep 1 day, or shorten (e.g. 1 h) and have clients silently re-authenticate with the provider SDK | Shorten, if clients can re-authenticate silently |
 | Log, metrics and error-tracking platform for 6.1 | Not yet chosen | Choose before Phase 6 starts; prefer one that accepts OpenTelemetry |
 | Maximum nearby radius | 100 miles today | Keep unless product asks otherwise |
+| Production instance count and rate-limit store (6.3) | (Decided 2026-11-13: a single instance for now, so the in-memory limiter is correct) One instance, or several with a Redis store | Add the Redis store (6.3) before scaling to a second instance |
+| Named preferred-time periods (B11) | (Decided 2026-11-13: confirmed) Morning 06:00–12:00, Lunchtime 12:00–14:00, Afternoon 12:00–17:00, Evening 17:00–21:00 | Used when converting v1 `timing` text |
 | Do the restructure and modern standards at all (Phases 7–8) | Do both, or only 8.1–8.6 (tooling) | Do both before the codebase grows further. See [RESTRUCTURE.md](RESTRUCTURE.md) and [STANDARDS.md](STANDARDS.md) |
 | Formatter, test runner, JWT algorithm, v1 sunset | See [STANDARDS.md](STANDARDS.md) | ESLint + Prettier, Vitest, EdDSA, 6 months |
 | `currentCountryCode` | (Decided 2026-11-13: replace with ISO `countryCode`) Drop it, or replace with an ISO country code | Replace with `countryCode` if any client uses it, else drop |
@@ -269,6 +271,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Decisions: production runs a single instance, so 6.3 (B19, Redis rate limiter) is deferred until scale-out; B11 named-period hours confirmed |
 | 2026-11-13 | Phase 6.5 B11 done: preferred times are `{ day, start, end }` with `setting.timeZone`; older apps' `timing` is converted and echoed; migration plus read-only preview; coverage thresholds raised to 93/84/95/96 |
 | 2026-11-13 | Phase 6.7 B12 done (6.7 complete): `currentCountryCode` replaced by ISO 3166-1 alpha-2 `countryCode`, editable via `PATCH /users/me`; migration removes the old IDs |
 | 2026-11-13 | Phase 6.9 B18 done: `npm run loadtest`, fixed-rate load test with p95 < 200 ms budget at an assumed 50 rps; 6.9 complete |
