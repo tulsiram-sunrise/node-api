@@ -96,7 +96,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | ID | Gap | Why it matters | Fix | Pri | Effort |
 | --- | --- | --- | --- | --- | --- |
 | B26 | No local stack | New contributors must install MongoDB | `compose.yaml` (STANDARDS S16) | P1 | 0.5 |
-| B27 | No seed data | Manual testing of nearby search needs hand-made users | `scripts/seed.js`: around 200 users scattered round a configurable point, mixed levels and times | P1 | 0.5 |
+| B27 | (Done 2026-11-13, PLAN 6.9: `npm run db:seed`; about 80% of seed users are discoverable; local databases only) No seed data | Manual testing of nearby search needs hand-made users | `scripts/seed.js`: around 200 users scattered round a configurable point, mixed levels and times | P1 | 0.5 |
 | B28 | (Done 2026-11-13, PLAN 6.9; thresholds 92/80/94/95 for statements/branches/functions/lines, measured 93.0/81.5/94.9/95.6) No coverage threshold | Coverage can quietly fall | Measure the current coverage, set the CI threshold just below it, raise it over time | P1 | 0.25 |
 | B29 | No CHANGELOG or tagged versions | Clients can't see what changed | release-please (STANDARDS S13) | P1 | 0.25 |
 
