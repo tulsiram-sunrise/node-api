@@ -20,7 +20,8 @@
         "migrate:up": "migrate-mongo up",
         "migrate:down": "migrate-mongo down",
         "db:find-duplicates": "node scripts/find-duplicate-users.js",
-        "db:seed": "node scripts/seed.js"
+        "db:seed": "node scripts/seed.js",
+        "loadtest": "node scripts/loadtest.js"
     },
     "author": "Tulsi Ram Maurya",
     "license": "ISC",

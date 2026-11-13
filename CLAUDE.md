@@ -20,6 +20,7 @@ npm run test:coverage # what CI runs; fails below coverageThreshold in package.j
 npm run lint       # ESLint 10 flat config
 npm run audit:prod # fails on high/critical advisories in production deps
 npm run migrate:up # apply DB migrations (migrations/); production has autoIndex=false
+npm run loadtest   # p95 budget check per endpoint (not in CI); 50 rps default is an assumed peak
 ```
 
 Before you finish any code change, run `npm run lint && npm test`.
