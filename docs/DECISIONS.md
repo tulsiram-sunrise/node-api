@@ -113,3 +113,13 @@ Date · Status: Proposed | Accepted | Superseded by ADR-NNN
 **Decision.** After the restructure, move to Node 26 LTS, ESM, TypeScript (type stripping plus `tsc --noEmit`), Vitest, Zod for validation and config, pino for logging, OpenAPI 3.1, and RFC 9457 Problem Details in `/api/v2`.
 
 **Consequences.** About 14 engineer-days. Supersedes ADR-004, ADR-005 and ADR-006 once accepted. v1 stays frozen and is later deprecated with `Deprecation`/`Sunset` headers.
+
+## ADR-011: Nearby search is opt-in
+
+2026-11-11 · Status: Accepted
+
+**Context.** Every user with a location appeared in other users' nearby search. That exposes rough location without consent, and is the main privacy risk of the feature (GAP B17).
+
+**Decision.** Users are hidden from nearby search until they opt in with `PATCH /users/me/discoverable`. The flag is a top-level `discoverable` field (default `false`), not `setting.discoverable`, because `PUT /me/setting` replaces the whole settings object and would silently opt people out. Opting in stores `discoverableSince` as a consent record. Searching does not require being discoverable.
+
+**Consequences.** Existing users vanish from results at release until they opt in, so clients need a visibility toggle and users need to be told. Whether searching should require being discoverable (reciprocity, which also limits scraping) is left open.

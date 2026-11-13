@@ -18,6 +18,7 @@ npm start          # production start
 npm test           # Jest + in-memory MongoDB. ALWAYS use this, never `npx jest` (needs --experimental-vm-modules)
 npm run lint       # ESLint 10 flat config
 npm run audit:prod # fails on high/critical advisories in production deps
+npm run migrate:up # apply DB migrations (migrations/); production has autoIndex=false
 ```
 
 Before you finish any code change, run `npm run lint && npm test`.
@@ -36,9 +37,10 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Errors: `throw new HttpError(status, message, "CODE")`. Never `res.status(4xx).send()`. Add new codes to `docs/API.md`.
 - Every input goes through `validate(schema, "body" | "query")` with bounded Joi schemas. Read query values from `req.validated.query` (Express 5 `req.query` is read-only).
 - Database writes are atomic (`$set`, `$setOnInsert`, upserts) with `{ returnDocument: "after", runValidators: true }`. Don't use `new: true`; it is deprecated in Mongoose 9.
-- Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search never returns coordinates or emails.
-- Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails.
+- Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search returns only `discoverable: true` users (opt-in, ADR-011) and never returns coordinates or emails.
+- Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails. Never commit real secrets, even in tests or examples (CI runs gitleaks). Test fixtures use obviously fake values.
 - Mock providers at `api/v1/services/oauth` or `global.fetch` in tests. Never call real Facebook or Google.
+- New index: declare it in the model AND add a migration in `migrations/`. `tests/migrations.test.js` checks they match.
 - New config: add a default in `config/default.json`, an env mapping in `custom-environment-variables.json`, a line in `.env.example`, and validation in `startup/config.js` if it's required.
 - Keep the v1 contract: the `x-auth-token` header, Facebook `access_token`, the same routes.
 
@@ -48,7 +50,6 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Jest needs `--experimental-vm-modules`, or MongoDB driver 7.8 sends an empty handshake and every DB test fails (ADR-005).
 - Use `127.0.0.1`, not `localhost`, in Mongo URIs (Node may resolve to IPv6).
 - Aggregation pipelines aren't cast by Mongoose, so pass real `ObjectId`s.
-- `express-rate-limit` 429 responses are plain text, not the JSON error shape yet (PLAN 5.1).
 
 ## Docs map
 

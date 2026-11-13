@@ -74,7 +74,9 @@ Put the unit in the name when a number has one: `windowMs`, `radiusMiles`, `SHUT
 - Use `async`/`await` only; Mongoose 9 has no callbacks.
 - Use atomic operators (`$set`, `$setOnInsert`, `findOneAndUpdate` with `upsert`) instead of read-modify-save.
 - Updates pass `{ returnDocument: "after", runValidators: true }`.
-- Declare indexes in the schema, and also create them by script before any release that adds them (see [RELEASE.md](RELEASE.md)).
+- Declare indexes in the schema **and** add a migration in `migrations/` that creates the same index. Production runs with `autoIndex: false`. `tests/migrations.test.js` fails if the two disagree.
+- Name migrations `YYYYMMDDhhmmss-what-it-does.js` (`npx migrate-mongo create <name>`). Each has an `up` and a `down`, must be safe to run twice, and must not depend on application models.
+- Data changes that touch many documents go in migrations too, in batches, never in application startup code.
 - Store coordinates as GeoJSON `[lng, lat]`. The API exposes `{ lat, lng }`; convert with `lib/geo.js`.
 - Mongoose doesn't cast aggregation pipelines. Pass real `ObjectId`s and validated values.
 
@@ -105,7 +107,9 @@ Put the unit in the name when a number has one: `windowMs`, `radiusMiles`, `SHUT
 - Commit subjects are imperative and at most 72 characters: `Add nearby search level filter`. Use the body to explain why.
 - One logical change per PR. CI (lint, tests, production audit) must be green before merge.
 - A PR that changes behaviour also updates [API.md](API.md), [PLAN.md](PLAN.md) and, for decisions, [DECISIONS.md](DECISIONS.md).
-- Never commit `.env`, logs or secrets. `.gitignore` covers the usual paths.
+- Never commit `.env`, logs or secrets. `.gitignore` covers the usual paths, and CI runs a gitleaks scan of the full history on every push and PR.
+- To scan locally before pushing (Docker required): `docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner`.
+- If a real secret is ever committed, **rotate it first**. Removing it from history does not un-leak it.
 
 ## Dependencies
 

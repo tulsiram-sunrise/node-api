@@ -131,6 +131,44 @@ describe("profile endpoints", () => {
     });
 });
 
+describe("PATCH /users/me/discoverable", () => {
+    const patch = (token, body) =>
+        request(app).patch("/api/v1/users/me/discoverable").set("authorization", `Bearer ${token}`).send(body);
+
+    it("is off by default for new users", async () => {
+        const { token } = await makeUser();
+        const res = await request(app).get("/api/v1/users/me").set("authorization", `Bearer ${token}`);
+        expect(res.body.discoverable).toBe(false);
+        expect(res.body.discoverableSince).toBeUndefined();
+    });
+
+    it("opting in records when consent was given; opting out clears it", async () => {
+        const { token } = await makeUser();
+        const before = Date.now();
+
+        const on = await patch(token, { discoverable: true });
+        expect(on.status).toBe(200);
+        expect(on.body.discoverable).toBe(true);
+        expect(Date.parse(on.body.discoverableSince)).toBeGreaterThanOrEqual(before - 1000);
+
+        const off = await patch(token, { discoverable: false });
+        expect(off.body.discoverable).toBe(false);
+        expect(off.body.discoverableSince).toBeUndefined();
+    });
+
+    it.each([[{}], [{ discoverable: "yes" }], [{ discoverable: 1 }]])("rejects %j", async (body) => {
+        const { token } = await makeUser();
+        const res = await patch(token, body);
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("requires authentication", async () => {
+        const res = await request(app).patch("/api/v1/users/me/discoverable").send({ discoverable: true });
+        expect(res.status).toBe(401);
+    });
+});
+
 describe("GET /users/nearby", () => {
     it("requires the caller to have a location", async () => {
         const { token } = await makeUser();
@@ -141,10 +179,11 @@ describe("GET /users/nearby", () => {
 
     it("returns nearby users sorted by distance, excluding self and far users", async () => {
         const { token } = await makeUser({ location: toPoint(LONDON) });
-        await makeUser({ name: "Near", location: toPoint(TWO_MILES_AWAY), level: "Advanced" });
-        await makeUser({ name: "Same", location: toPoint(LONDON) });
-        await makeUser({ name: "Far", location: toPoint(OXFORD) });
-        await makeUser({ name: "Nowhere" });
+        const visible = { discoverable: true };
+        await makeUser({ name: "Near", location: toPoint(TWO_MILES_AWAY), level: "Advanced", ...visible });
+        await makeUser({ name: "Same", location: toPoint(LONDON), ...visible });
+        await makeUser({ name: "Far", location: toPoint(OXFORD), ...visible });
+        await makeUser({ name: "Nowhere", ...visible });
 
         const res = await request(app)
             .get("/api/v1/users/nearby?distance=10")
@@ -160,14 +199,26 @@ describe("GET /users/nearby", () => {
 
     it("filters by level and falls back to the user's distance setting", async () => {
         const { token } = await makeUser({ location: toPoint(LONDON), setting: { distance: 100 } });
-        await makeUser({ name: "Far", location: toPoint(OXFORD), level: "Advanced" });
-        await makeUser({ name: "Near", location: toPoint(TWO_MILES_AWAY) });
+        await makeUser({ name: "Far", location: toPoint(OXFORD), level: "Advanced", discoverable: true });
+        await makeUser({ name: "Near", location: toPoint(TWO_MILES_AWAY), discoverable: true });
 
         const res = await request(app)
             .get("/api/v1/users/nearby?level=Advanced")
             .set("authorization", `Bearer ${token}`);
         expect(res.body.radiusMiles).toBe(100);
         expect(res.body.users.map((u) => u.name)).toEqual(["Far"]);
+    });
+
+    it("only returns users who opted in to being discoverable", async () => {
+        const { token } = await makeUser({ location: toPoint(LONDON) });
+        await makeUser({ name: "OptedIn", location: toPoint(TWO_MILES_AWAY), discoverable: true });
+        await makeUser({ name: "Default", location: toPoint(TWO_MILES_AWAY) });
+        await makeUser({ name: "OptedOut", location: toPoint(TWO_MILES_AWAY), discoverable: false });
+
+        const res = await request(app).get("/api/v1/users/nearby").set("authorization", `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.users.map((u) => u.name)).toEqual(["OptedIn"]);
     });
 
     it("validates query parameters", async () => {

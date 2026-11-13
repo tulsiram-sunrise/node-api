@@ -34,13 +34,15 @@ Every error uses the same shape:
 | 400 | `VALIDATION_ERROR` | Body or query failed validation |
 | 400 | `ENTITY_PARSE_FAILED` | Malformed JSON |
 | 400 | `INVALID_ID` | Malformed ObjectId in a path parameter |
+| 400 | `INVALID_SIGNED_REQUEST` | Facebook `signed_request` failed signature or format checks |
 | 401 | `UNAUTHENTICATED` | No token sent |
 | 401 | `INVALID_TOKEN` | JWT or provider token is invalid or expired |
 | 404 | `NOT_FOUND` | Unknown route |
 | 404 | `USER_NOT_FOUND` | The token's user no longer exists |
+| 404 | `DELETION_REQUEST_NOT_FOUND` | Unknown data-deletion confirmation code |
 | 409 | `LOCATION_REQUIRED` | Nearby search before setting a location |
 | 413 | `ENTITY_TOO_LARGE` | Body over 10 kB |
-| 429 | (plain text today) | Rate limit exceeded; see PLAN.md 5.1 |
+| 429 | `RATE_LIMITED` | Rate limit exceeded; wait `Retry-After` seconds |
 | 500 | `INTERNAL_ERROR` | Unexpected server error; no details are exposed |
 | 501 | `PROVIDER_NOT_CONFIGURED` | That social provider is not set up on this server |
 | 502 | `PROVIDER_UNAVAILABLE` | Facebook could not be reached or returned a 5xx |
@@ -48,7 +50,7 @@ Every error uses the same shape:
 ## Rate limits
 
 - All routes except `/health` and `/ready`: 300 requests per 15 minutes per IP.
-- `/auth/*`: 20 requests per 15 minutes per IP.
+- `/auth/facebook` and `/auth/google`: 20 requests per 15 minutes per IP.
 
 Responses carry `RateLimit` and `RateLimit-Policy` headers (IETF draft 8 format).
 
@@ -72,6 +74,28 @@ The token must have been issued for this server's Facebook app. Returns `200` wi
 
 Get the ID token from Google Identity Services (web) or the Google Sign-In SDK (iOS/Android). Its audience must be one of the configured client IDs. The response is the same as for Facebook.
 
+### `POST /auth/facebook/data-deletion`
+
+Meta calls this when a user asks Facebook to delete the data this app holds about them. Register it in the Meta App Dashboard as the **Data Deletion Request Callback URL**. It is not for app clients.
+
+The request is `application/x-www-form-urlencoded` with a `signed_request` field. It is accepted only if its HMAC-SHA256 signature matches the Facebook app secret. The user with that app-scoped Facebook ID is deleted; if none exists, the request is still confirmed.
+
+```json
+{ "url": "https://api.example.com/api/v1/auth/facebook/data-deletion/9f2c…", "confirmation_code": "9f2c…" }
+```
+
+The URL uses `napi_publicUrl` when it is set, otherwise the request's host. This route is not subject to the stricter login rate limit.
+
+### `GET /auth/facebook/data-deletion/:code`
+
+The status page Meta shows to the user. `code` is the 32-character hex confirmation code.
+
+```json
+{ "confirmationCode": "9f2c…", "status": "completed", "requestedAt": "2026-11-11T10:00:00.000Z" }
+```
+
+Deletion records hold only the code and a timestamp, and expire after 365 days.
+
 ---
 
 ## Users
@@ -93,6 +117,14 @@ Deletes the account. Returns `204`. The JWT keeps validating until it expires, b
 ```
 
 Allowed values: `Beginner`, `Intermediate`, `Advanced`. Returns the updated user.
+
+### `PATCH /users/me/discoverable`
+
+```json
+{ "discoverable": true }
+```
+
+Opts in to (or out of) appearing in other users' nearby search. Users are **not** discoverable until they opt in. Opting in sets `discoverableSince` to the current time as a consent record; opting out removes it. The value must be a JSON boolean. Returns the updated user.
 
 ### `PUT /users/me/location`
 
@@ -135,7 +167,7 @@ The whole `setting` object is replaced. Unknown keys are dropped.
 }
 ```
 
-Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
+Only users who have opted in with `PATCH /users/me/discoverable` appear. The caller does not need to be discoverable to search. Results are sorted closest first and never include the caller. Coordinates and emails are never returned, and `distanceMiles` is rounded up to a whole mile. Returns `409 LOCATION_REQUIRED` if the caller has not set a location.
 
 ---
 
@@ -149,6 +181,8 @@ Results are sorted closest first and never include the caller. Coordinates and e
   "profilePic": "https://…",
   "level": "Beginner",
   "location": { "lat": 51.5074, "lng": -0.1278 },
+  "discoverable": true,
+  "discoverableSince": "2026-11-07T10:02:00.000Z",
   "setting": { "distance": 10, "preferredTime": [{ "day": "Monday", "timing": "18:00-20:00" }] },
   "createdAt": "2026-11-07T10:00:00.000Z",
   "updatedAt": "2026-11-07T10:05:00.000Z"

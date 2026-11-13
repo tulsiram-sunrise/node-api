@@ -7,6 +7,10 @@ const level = Joi.object({
         .required(),
 });
 
+const discoverable = Joi.object({
+    discoverable: Joi.boolean().strict().required(),
+});
+
 const location = Joi.object({
     location: Joi.object({
         lat: Joi.number().min(-90).max(90).required(),
@@ -35,4 +39,4 @@ const nearbyQuery = Joi.object({
     limit: Joi.number().integer().min(1).max(50).default(20),
 });
 
-module.exports = { level, location, setting, nearbyQuery };
+module.exports = { level, discoverable, location, setting, nearbyQuery };

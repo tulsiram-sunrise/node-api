@@ -9,4 +9,13 @@ const google = Joi.object({
     id_token: Joi.string().trim().max(4096).required(),
 });
 
-module.exports = { facebook, google };
+// Sent by Meta as application/x-www-form-urlencoded.
+const facebookDataDeletion = Joi.object({
+    signed_request: Joi.string().trim().max(8192).required(),
+});
+
+const dataDeletionStatus = Joi.object({
+    code: Joi.string().hex().length(32).required(),
+});
+
+module.exports = { facebook, google, facebookDataDeletion, dataDeletionStatus };

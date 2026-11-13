@@ -33,6 +33,8 @@ api/
     controllers/         Thin HTTP handlers: read req, call model/service, write res
     services/oauth.js    Facebook and Google token verification (outbound HTTP)
     models/user.js       Mongoose schema, indexes, toJSON transform, upsertOAuthUser
+migrations/              migrate-mongo migrations (indexes, data changes); config in migrate-mongo-config.js
+scripts/                 Operational CLIs (find-duplicate-users.js) and shared helpers in scripts/lib/
 tests/                   Jest + supertest; helpers/db.js runs mongodb-memory-server
 docs/                    This documentation
 ```
@@ -83,12 +85,18 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 | `email` | string | Lower-cased; for Google, stored only if verified |
 | `name`, `profilePic` | string | Taken from the provider on first sign-in only |
 | `level` | enum | `Beginner` (default), `Intermediate`, `Advanced` |
+| `discoverable` | boolean | Default `false`; only `true` users appear in nearby search |
+| `discoverableSince` | Date | When the user last opted in (consent record); removed on opt-out |
 | `location` | GeoJSON Point | `[lng, lat]`; `2dsphere` index; returned to the owner as `{ lat, lng }` |
 | `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, timing }` |
 | `currentCountryCode` | ObjectId | Kept from v1; refers to `ReferenceCode`, which this service does not define |
 | `createdAt`, `updatedAt` | Date | Mongoose timestamps |
 
 `toJSON` renames `_id` to `id` and removes `provider`, `facebook`, `google` and `__v`.
+
+## Data model: `deletionrequests`
+
+One record per Facebook data-deletion callback: `code` (unique confirmation code), `provider`, `status`, timestamps. It holds no user identifiers. A TTL index removes records after 365 days.
 
 ## Configuration
 

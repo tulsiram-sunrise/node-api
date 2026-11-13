@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
         profilePic: { type: String, maxlength: 2048 },
         level: { type: String, enum: LEVELS, default: "Beginner" },
         location: { type: pointSchema },
+        // Opt-in (B17): only users who turned this on appear in nearby search.
+        discoverable: { type: Boolean, default: false },
+        // When the user last opted in; kept as a consent record.
+        discoverableSince: { type: Date },
         currentCountryCode: { type: mongoose.Schema.Types.ObjectId, ref: "ReferenceCode" },
         setting: { type: settingSchema },
     },

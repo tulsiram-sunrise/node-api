@@ -1,15 +1,15 @@
 {
     "port": 5000,
+    "publicUrl": "",
     "db": "mongodb://127.0.0.1:27017/nodeapi",
+    "autoIndex": true,
     "trustProxy": false,
-
     "jwt": {
         "secret": "",
         "expiresIn": "1d",
         "issuer": "NodeApi",
         "audience": "node-api-clients"
     },
-
     "auth": {
         "facebook": {
             "appId": "",
@@ -20,17 +20,14 @@
             "clientId": ""
         }
     },
-
     "cors": {
         "origins": []
     },
-
     "rateLimit": {
         "windowMs": 900000,
         "max": 300,
         "authMax": 20
     },
-
     "logging": {
         "level": "info",
         "format": "pretty",
