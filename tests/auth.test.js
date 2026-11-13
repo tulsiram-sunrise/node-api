@@ -61,6 +61,28 @@ describe("POST /api/v1/auth/facebook", () => {
         expect(await User.countDocuments()).toBe(1);
     });
 
+    it("keeps profile edits on later logins (B5)", async () => {
+        oauth.verifyFacebookToken.mockResolvedValue({ ...fbIdentity, profilePic: "https://cdn.example.com/fb-1.jpg" });
+        const first = await request(app).post("/api/v1/auth/facebook").send({ access_token: "valid" }).expect(200);
+        await request(app)
+            .patch("/api/v1/users/me")
+            .set("x-auth-token", first.headers["x-auth-token"])
+            .send({ name: "Edited Name", profilePic: null })
+            .expect(200);
+
+        // The provider now reports a different name and photo.
+        oauth.verifyFacebookToken.mockResolvedValue({
+            ...fbIdentity,
+            name: "Provider Name",
+            profilePic: "https://cdn.example.com/fb-2.jpg",
+        });
+        const again = await request(app).post("/api/v1/auth/facebook").send({ access_token: "valid" }).expect(200);
+
+        expect(again.body.id).toBe(first.body.id);
+        expect(again.body.name).toBe("Edited Name");
+        expect(again.body).not.toHaveProperty("profilePic");
+    });
+
     it("validates the body", async () => {
         const res = await request(app).post("/api/v1/auth/facebook").send({});
         expect(res.status).toBe(400);
