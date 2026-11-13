@@ -9,6 +9,7 @@ const { findDuplicateProviderIds } = require("../scripts/lib/duplicates");
 const usersIndexes = require("../migrations/20261111000000-users-indexes");
 const deletionIndexes = require("../migrations/20261111000100-deletionrequests-indexes");
 const nearbyIndex = require("../migrations/20261113000000-users-nearby-index");
+const countryCode = require("../migrations/20261113000100-users-country-code");
 
 const run = promisify(execFile);
 const ROOT = path.join(__dirname, "..");
@@ -108,6 +109,35 @@ describe("migration: users nearby index (B14)", () => {
     });
 });
 
+describe("migration: users country code (B12)", () => {
+    it("removes the legacy currentCountryCode and leaves everything else", async () => {
+        const users = db.collection("users");
+        const legacyId = new mongoose.Types.ObjectId();
+        await users.insertMany([
+            { name: "Legacy", currentCountryCode: legacyId, level: "Advanced" },
+            { name: "Modern", countryCode: "GB" },
+        ]);
+
+        await countryCode.up(db);
+
+        const rows = await users.find({}, { projection: { _id: 0 } }).sort({ name: 1 }).toArray();
+        expect(rows).toEqual([
+            { name: "Legacy", level: "Advanced" },
+            { name: "Modern", countryCode: "GB" },
+        ]);
+        await expect(countryCode.up(db)).resolves.toBeUndefined();
+        await expect(countryCode.down(db)).resolves.toBeUndefined();
+    });
+
+    it("refuses to discard IDs while a referencecodes collection could map them", async () => {
+        await db.collection("users").insertOne({ name: "Legacy", currentCountryCode: new mongoose.Types.ObjectId() });
+        await db.collection("referencecodes").insertOne({ code: "GB" });
+
+        await expect(countryCode.up(db)).rejects.toThrow(/referencecodes exists, so 1 user currentCountryCode value/);
+        expect(await db.collection("users").countDocuments({ currentCountryCode: { $exists: true } })).toBe(1);
+    });
+});
+
 describe("migration: deletionrequests indexes", () => {
     it("creates the unique code and TTL indexes; down tolerates a missing collection", async () => {
         await deletionIndexes.up(db);
@@ -155,6 +185,7 @@ describe("migrate-mongo CLI", () => {
         expect(up.stdout).toMatch(/MIGRATED UP: 20261111000000-users-indexes\.js/);
         expect(up.stdout).toMatch(/MIGRATED UP: 20261111000100-deletionrequests-indexes\.js/);
         expect(up.stdout).toMatch(/MIGRATED UP: 20261113000000-users-nearby-index\.js/);
+        expect(up.stdout).toMatch(/MIGRATED UP: 20261113000100-users-country-code\.js/);
 
         const status = await run(process.execPath, [cli, "status"], { cwd: ROOT, env });
         expect(status.stdout).not.toMatch(/PENDING/);

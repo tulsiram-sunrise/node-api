@@ -111,15 +111,16 @@ Returns the current user.
 ### `PATCH /users/me`
 
 ```json
-{ "name": "Jane D.", "profilePic": "https://cdn.example.com/jane.jpg" }
+{ "name": "Jane D.", "profilePic": "https://cdn.example.com/jane.jpg", "countryCode": "GB" }
 ```
 
 Send at least one field. Only the fields you send change.
 
 - `name`: 1–100 characters, trimmed.
 - `profilePic`: an `https` URL of up to 2048 characters, or `null` to remove the photo. The server stores the URL and never fetches it.
+- `countryCode`: an ISO 3166-1 alpha-2 code such as `GB` or `US`, in any case (stored upper case), or `null` to remove it. Codes that aren't assigned countries (`EU`, `UK`, `XK`, alpha-3 such as `GBR`) return `400 VALIDATION_ERROR`. It is never shown in nearby results.
 
-Both fields are copied from the provider only when the account is created, so later logins don't overwrite your edits. Email and other fields can't be changed here; unknown keys are dropped, and a body with no known keys returns `400 VALIDATION_ERROR`. Returns the updated user.
+`name` and `profilePic` are copied from the provider only when the account is created, so later logins don't overwrite your edits. Email and other fields can't be changed here; unknown keys are dropped, and a body with no known keys returns `400 VALIDATION_ERROR`. Returns the updated user.
 
 ### `DELETE /users/me`
 
@@ -200,6 +201,7 @@ A cursor only works for the same caller, the same caller location and the same `
   "email": "jane@example.com",
   "name": "Jane",
   "profilePic": "https://…",
+  "countryCode": "GB",
   "level": "Beginner",
   "location": { "lat": 51.5074, "lng": -0.1278 },
   "discoverable": true,

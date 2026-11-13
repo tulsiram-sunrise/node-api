@@ -56,7 +56,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | ID | Gap | Why it matters | Fix | Pri | Effort |
 | --- | --- | --- | --- | --- | --- |
 | B11 | `preferredTime.timing` is free text | Can't be compared or matched (`"6-8pm"` vs `"18:00-20:00"`), and there's no time zone | `{ day, start: "HH:mm", end: "HH:mm" }` plus user `timeZone` (IANA name); migrate existing values | P1 | 1 |
-| B12 | `currentCountryCode` refers to a model that doesn't exist | A dead field that can't be populated or validated | Decide: drop it, or replace it with an ISO 3166-1 alpha-2 `countryCode` string | P1 | 0.25 |
+| B12 | (Done 2026-11-13, PLAN 6.7: replaced by ISO `countryCode`, set with `PATCH /users/me`; the migration stops if a `referencecodes` collection exists) `currentCountryCode` refers to a model that doesn't exist | A dead field that can't be populated or validated | Decide: drop it, or replace it with an ISO 3166-1 alpha-2 `countryCode` string | P1 | 0.25 |
 | B13 | No migration tooling | Index and data changes rely on manual snippets | migrate-mongo with `migrations/` (STANDARDS S18) | P0 | 0.5 |
 | B14 | (Done 2026-11-13, PLAN 6.7; the index also covers `discoverable`, which every nearby search filters on since ADR-011) Nearby `level` filter isn't covered by an index | Filtered geo queries scan more documents than they need to | Compound index `{ location: "2dsphere", level: 1 }` | P1 | 0.25 |
 | B15 | No backup and restore procedure beyond the release dump | Data loss has no tested recovery | Scheduled backups (Atlas or `mongodump`), quarterly restore drill, documented RPO/RTO | P0 | 1 |

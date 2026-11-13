@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { COUNTRY_CODES } = require("../../../lib/countries");
 
 const PROVIDERS = ["facebook", "google"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
@@ -40,7 +41,8 @@ const userSchema = new mongoose.Schema(
         discoverable: { type: Boolean, default: false },
         // When the user last opted in; kept as a consent record.
         discoverableSince: { type: Date },
-        currentCountryCode: { type: mongoose.Schema.Types.ObjectId, ref: "ReferenceCode" },
+        // ISO 3166-1 alpha-2, set by the user (B12). Replaces v1 currentCountryCode.
+        countryCode: { type: String, enum: COUNTRY_CODES },
         setting: { type: settingSchema },
     },
     {

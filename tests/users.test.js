@@ -169,11 +169,37 @@ describe("PATCH /users/me (B5)", () => {
         ["a javascript: URL", { profilePic: "javascript:alert(1)" }],
         ["a data: URL", { profilePic: "data:image/png;base64,AAAA" }],
         ["a non-string name", { name: { $ne: null } }],
+        ["an unassigned country code", { countryCode: "XX" }],
+        ["a region that isn't a country", { countryCode: "EU" }],
+        ["an alpha-3 country code", { countryCode: "GBR" }],
+        ["a non-string country code", { countryCode: 44 }],
     ])("rejects %s", async (_label, body) => {
         const { token } = await makeUser();
         const res = await patchMe(token, body);
         expect(res.status).toBe(400);
         expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("sets the country as an upper-case ISO code, and null removes it (B12)", async () => {
+        const { user, token } = await makeUser();
+
+        const set = await patchMe(token, { countryCode: " gb " });
+        expect(set.status).toBe(200);
+        expect(set.body.countryCode).toBe("GB");
+        const me = await request(app).get("/api/v1/users/me").set("authorization", `Bearer ${token}`);
+        expect(me.body.countryCode).toBe("GB");
+
+        const cleared = await patchMe(token, { countryCode: null });
+        expect(cleared.status).toBe(200);
+        expect(cleared.body).not.toHaveProperty("countryCode");
+        expect((await User.findById(user._id).lean()).countryCode).toBeUndefined();
+    });
+
+    it("rejects an invalid country code in the database too (model enum)", async () => {
+        const { user } = await makeUser();
+        await expect(
+            User.findByIdAndUpdate(user._id, { $set: { countryCode: "XX" } }, { runValidators: true })
+        ).rejects.toThrow(/countryCode/);
     });
 
     it("can't change email or other fields", async () => {
