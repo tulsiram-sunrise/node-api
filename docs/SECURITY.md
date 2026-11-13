@@ -36,7 +36,7 @@ The OWASP API Security Top 10 (2023) check is in [GAP_ANALYSIS.md](GAP_ANALYSIS.
 
 | Secret | Env var | Rotation |
 | --- | --- | --- |
-| JWT signing key | `napi_JWTPrivateKey` | Rotating it signs every user out. Plan rotation with asymmetric keys and `kid` (PLAN 9.2) |
+| JWT signing key | `napi_JWTPrivateKey` | Rotating it signs every user out and invalidates open nearby-search cursors (their key is derived from it). Plan rotation with asymmetric keys and `kid` (PLAN 9.2) |
 | Facebook app secret | `napi_FacebookClientSecret` | Rotate in the Facebook developer console, then redeploy |
 | Google client IDs | `napi_GoogleClientId` | Not secret, but must match every client build |
 

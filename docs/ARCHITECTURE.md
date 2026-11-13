@@ -13,6 +13,7 @@ startup/
   db.js                  MongoDB connect/disconnect/isConnected; global Mongoose settings
   security.js            helmet, CORS, global rate limiter; authLimiter() factory
   routes.js              /, /health, /ready, /api, 404 and error handlers
+  server.js              HTTP server request/headers/keep-alive timeouts
 middleware/              Cross-cutting, version-independent middleware
   requestContext.js      Request ID + access log line
   validate.js            Joi validation for body/query/params
@@ -24,6 +25,7 @@ lib/                     Framework-free helpers
   tokens.js              JWT sign/verify (HS256, iss, aud, sub, exp)
   httpError.js           HttpError(status, message, code, details)
   geo.js                 miles↔meters, {lat,lng} → GeoJSON Point
+  cursor.js              Encrypted, tamper-proof pagination cursors (AES-256-GCM, key from jwt.secret via HKDF)
 api/
   routes.js              JSON body parser (10 kB) + /v1 mount
   v1/
