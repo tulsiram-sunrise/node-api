@@ -66,7 +66,9 @@ const userSchema = new mongoose.Schema(
 // One account per provider identity; enforced by the database, not app code.
 userSchema.index({ "facebook.id": 1 }, { unique: true, sparse: true });
 userSchema.index({ "google.id": 1 }, { unique: true, sparse: true });
-userSchema.index({ location: "2dsphere" });
+// Nearby search (B14): discoverable and level are filtered inside the index,
+// so $geoNear reads only users that match. Replaces the plain location index.
+userSchema.index({ location: "2dsphere", discoverable: 1, level: 1 });
 
 /**
  * Atomically find or create the user for a verified social identity.

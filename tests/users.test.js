@@ -254,6 +254,27 @@ describe("GET /users/nearby", () => {
         expect(res.body.users[0]).not.toHaveProperty("email");
     });
 
+    it("uses the compound geo index, and still works while a migration has two geo indexes (B14)", async () => {
+        const { token } = await makeUser({ location: toPoint(LONDON) });
+        await makeUser({ name: "Match", location: toPoint(TWO_MILES_AWAY), level: "Advanced", discoverable: true });
+        await makeUser({ name: "Hidden", location: toPoint(TWO_MILES_AWAY), level: "Advanced" });
+        await User.syncIndexes();
+        const names = (await User.collection.indexes()).map((i) => i.name);
+        expect(names).toContain("location_2dsphere_discoverable_1_level_1");
+
+        // Mid-migration state: the old plain index exists alongside the new one.
+        await User.collection.createIndex({ location: "2dsphere" });
+        try {
+            const res = await request(app)
+                .get("/api/v1/users/nearby?level=Advanced")
+                .set("authorization", `Bearer ${token}`);
+            expect(res.status).toBe(200);
+            expect(res.body.users.map((u) => u.name)).toEqual(["Match"]);
+        } finally {
+            await User.collection.dropIndex("location_2dsphere");
+        }
+    });
+
     it("filters by level and falls back to the user's distance setting", async () => {
         const { token } = await makeUser({ location: toPoint(LONDON), setting: { distance: 100 } });
         await makeUser({ name: "Far", location: toPoint(OXFORD), level: "Advanced", discoverable: true });

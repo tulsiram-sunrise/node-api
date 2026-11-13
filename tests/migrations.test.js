@@ -8,6 +8,7 @@ const { DeletionRequest } = require("../api/v1/models/deletionRequest");
 const { findDuplicateProviderIds } = require("../scripts/lib/duplicates");
 const usersIndexes = require("../migrations/20261111000000-users-indexes");
 const deletionIndexes = require("../migrations/20261111000100-deletionrequests-indexes");
+const nearbyIndex = require("../migrations/20261113000000-users-nearby-index");
 
 const run = promisify(execFile);
 const ROOT = path.join(__dirname, "..");
@@ -85,6 +86,28 @@ describe("migration: users indexes", () => {
     });
 });
 
+describe("migration: users nearby index (B14)", () => {
+    const COMPOUND = "location_2dsphere_discoverable_1_level_1";
+
+    it("replaces the plain geo index with the compound one, and down restores it", async () => {
+        await usersIndexes.up(db);
+        await nearbyIndex.up(db);
+        expect(await indexNames("users")).toEqual(["_id_", "facebook.id_1", "google.id_1", COMPOUND].sort());
+
+        await nearbyIndex.down(db);
+        expect(await indexNames("users")).toEqual(
+            ["_id_", "facebook.id_1", "google.id_1", "location_2dsphere"].sort()
+        );
+    });
+
+    it("is safe to run twice, and down is safe on a fresh database", async () => {
+        await nearbyIndex.up(db);
+        await expect(nearbyIndex.up(db)).resolves.toBeUndefined();
+        await db.collection("users").drop();
+        await expect(nearbyIndex.down(db)).resolves.toBeUndefined();
+    });
+});
+
 describe("migration: deletionrequests indexes", () => {
     it("creates the unique code and TTL indexes; down tolerates a missing collection", async () => {
         await deletionIndexes.up(db);
@@ -102,10 +125,10 @@ describe("migrations match the Mongoose models", () => {
     // Guards against drift: if a model index changes without a migration (or
     // vice versa), production (autoIndex=false) would silently diverge.
     it.each([
-        ["users", User, usersIndexes],
-        ["deletionrequests", DeletionRequest, deletionIndexes],
-    ])("%s", async (coll, Model, migration) => {
-        await migration.up(db);
+        ["users", User, [usersIndexes, nearbyIndex]],
+        ["deletionrequests", DeletionRequest, [deletionIndexes]],
+    ])("%s", async (coll, Model, migrations) => {
+        for (const migration of migrations) await migration.up(db);
         const created = (await db.collection(coll).indexes()).filter((i) => i.name !== "_id_");
         const relevant = ["unique", "sparse", "expireAfterSeconds"];
 
@@ -131,6 +154,7 @@ describe("migrate-mongo CLI", () => {
         const up = await run(process.execPath, [cli, "up"], { cwd: ROOT, env });
         expect(up.stdout).toMatch(/MIGRATED UP: 20261111000000-users-indexes\.js/);
         expect(up.stdout).toMatch(/MIGRATED UP: 20261111000100-deletionrequests-indexes\.js/);
+        expect(up.stdout).toMatch(/MIGRATED UP: 20261113000000-users-nearby-index\.js/);
 
         const status = await run(process.execPath, [cli, "status"], { cwd: ROOT, env });
         expect(status.stdout).not.toMatch(/PENDING/);

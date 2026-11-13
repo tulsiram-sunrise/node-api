@@ -91,7 +91,7 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 | `level` | enum | `Beginner` (default), `Intermediate`, `Advanced` |
 | `discoverable` | boolean | Default `false`; only `true` users appear in nearby search |
 | `discoverableSince` | Date | When the user last opted in (consent record); removed on opt-out |
-| `location` | GeoJSON Point | `[lng, lat]`; `2dsphere` index; returned to the owner as `{ lat, lng }` |
+| `location` | GeoJSON Point | `[lng, lat]`; compound index `{ location: "2dsphere", discoverable: 1, level: 1 }` (B14), so nearby filters run inside the index; returned to the owner as `{ lat, lng }` |
 | `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, timing }` |
 | `currentCountryCode` | ObjectId | Kept from v1; refers to `ReferenceCode`, which this service does not define |
 | `createdAt`, `updatedAt` | Date | Mongoose timestamps |

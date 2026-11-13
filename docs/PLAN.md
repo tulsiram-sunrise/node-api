@@ -4,7 +4,7 @@ Last updated: 2026-11-07 · Branch: `upgrade/modernize-api` · Target version: 2
 
 ## Status
 
-v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4 and 6.8 done).
+v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4 and 6.8 done; B14 of 6.7 done).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -196,7 +196,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | 6.4 | (Done 2026-11-13) Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
 | 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
-| 6.7 | Data model cleanup: `currentCountryCode` decision, compound geo index | B12, B14 | 0.5 |
+| 6.7 | Data model cleanup: `currentCountryCode` decision (open), compound geo index (B14 done 2026-11-13) | B12, B14 | 0.5 |
 | 6.8 | (Done 2026-11-13) `PATCH /users/me` for name and photo; security event log | B5, B4 | 1 |
 | 6.9 | Load test with performance budget; seed script; coverage threshold | B18, B27, B28 | 1.75 |
 
@@ -267,6 +267,7 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Phase 6.7 B14 done: compound geo index `{ location, discoverable, level }` with migration; B12 still needs a decision |
 | 2026-11-13 | Phase 6.8 (B5, B4) done: `PATCH /users/me` for name and photo; security event log |
 | 2026-11-13 | Phase 6.4 (B7) done: encrypted cursor pagination for nearby search, stable on distance ties, without a blocking sort |
 | 2026-11-13 | PR #31 merged Phase 5.1 into master. Phase 6.2 (B10) done: HTTP request, header and keep-alive timeouts; MongoDB `maxTimeMS` with 503 `QUERY_TIMEOUT` |
