@@ -49,7 +49,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | B7 | No pagination beyond `limit` | Nearby search returns at most 50 users and there's no way to get the next page | Cursor pagination: `?cursor=` holding the last distance and `_id`, plus `nextCursor` in the response; `$geoNear` with `minDistance` | P1 | 1 |
 | B8 | No published API description | Clients reverse-engineer the README | OpenAPI 3.1 (STANDARDS S9). Until then, API.md is the contract | P1 | 2 |
 | B9 | `404` instead of `405` for a wrong method on a known path | Misleading for client developers | Per-router `.all()` fallback returning 405 with an `Allow` header | P2 | 0.25 |
-| B10 | No server-side request timeout | A slow MongoDB query holds a connection indefinitely | Set `server.requestTimeout` and `headersTimeout`; set `keepAliveTimeout` above the load balancer's idle timeout; `maxTimeMS` on queries | P1 | 0.5 |
+| B10 | (Done 2026-11-13, PLAN 6.2) No server-side request timeout | A slow MongoDB query holds a connection indefinitely | Set `server.requestTimeout` and `headersTimeout`; set `keepAliveTimeout` above the load balancer's idle timeout; `maxTimeMS` on queries | P1 | 0.5 |
 
 ### Data model and database
 
@@ -190,7 +190,7 @@ The two P0 gaps that are easiest to miss: **Facebook requires a data-deletion ca
 | API1 Broken object-level authorization | OK: all user routes act on `req.auth.sub`; there are no `/:id` writes | Keep it so when A18 and A5 add `/:id` routes |
 | API2 Broken authentication | Mostly OK | B3, A3 |
 | API3 Broken object-property-level authorization | OK: `stripUnknown` and projections | Add a test per new field |
-| API4 Unrestricted resource consumption | Partly: rate and body limits, list `limit` | B10, B19, B7 |
+| API4 Unrestricted resource consumption | Partly: rate and body limits, list `limit`, request and query timeouts (B10) | B19, B7 |
 | API5 Broken function-level authorization | Not applicable yet (no roles) | Design together with A5 |
 | API6 Unrestricted access to sensitive business flows | Partly | Per-user limits on nearby search to stop location harvesting by scraping |
 | API7 Server-side request forgery | OK: outbound calls only to fixed provider hosts | Never fetch user-supplied URLs (e.g. `profilePic`) server-side |

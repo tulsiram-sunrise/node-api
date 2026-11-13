@@ -108,4 +108,5 @@ The `config` package merges `default.json`, then `<NODE_ENV>.json`, then the env
 - `GET /ready`: readiness. It returns 503 until MongoDB is connected.
 - SIGTERM/SIGINT: stop accepting connections, let in-flight requests finish, disconnect MongoDB, exit. If that takes more than 10 seconds, the process exits with code 1.
 - An uncaught exception or unhandled rejection is logged and the process exits with code 1. The orchestrator restarts it.
+- Timeouts (GAP B10, `timeouts.*` in config): the whole request must arrive within 30 s and headers within 10 s; idle keep-alive sockets close after 65 s, which is above the 60 s idle timeout of common load balancers. MongoDB `find`, `findOne`, `countDocuments`, `findOneAndUpdate` and `aggregate` carry `maxTimeMS` (5 s), and one that runs over returns 503 `QUERY_TIMEOUT`. Deletes don't carry it; they match by `_id` or an indexed field. Provider calls have their own 5 s timeout.
 - The service is stateless apart from MongoDB. Rate-limit counters are per instance until PLAN item 6.3 (Redis store) ships.

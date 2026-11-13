@@ -2,6 +2,7 @@ const config = require("config");
 const logger = require("./lib/logger");
 const validateConfig = require("./startup/config");
 const db = require("./startup/db");
+const { applyServerTimeouts } = require("./startup/server");
 const createApp = require("./app");
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -18,11 +19,13 @@ process.on("unhandledRejection", fatal("Unhandled rejection"));
 
 async function main() {
     validateConfig();
-    await db.connect(config.get("db"), { autoIndex: config.get("autoIndex") });
+    const timeouts = config.get("timeouts");
+    await db.connect(config.get("db"), { autoIndex: config.get("autoIndex"), maxTimeMS: timeouts.queryMs });
 
     const app = createApp();
     const port = config.get("port");
     const server = app.listen(port, () => logger.info(`Server listening on port ${port}`));
+    applyServerTimeouts(server, timeouts);
 
     let shuttingDown = false;
     const shutdown = (signal) => {

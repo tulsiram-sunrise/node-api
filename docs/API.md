@@ -46,6 +46,7 @@ Every error uses the same shape:
 | 500 | `INTERNAL_ERROR` | Unexpected server error; no details are exposed |
 | 501 | `PROVIDER_NOT_CONFIGURED` | That social provider is not set up on this server |
 | 502 | `PROVIDER_UNAVAILABLE` | Facebook could not be reached or returned a 5xx |
+| 503 | `QUERY_TIMEOUT` | A database query ran past its time limit (5 s by default); safe to retry with backoff |
 
 ## Rate limits
 
