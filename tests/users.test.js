@@ -131,6 +131,63 @@ describe("profile endpoints", () => {
     });
 });
 
+describe("PATCH /users/me (B5)", () => {
+    const patchMe = (token, body) =>
+        request(app).patch("/api/v1/users/me").set("authorization", `Bearer ${token}`).send(body);
+
+    it("updates the name (trimmed) and photo", async () => {
+        const { token } = await makeUser({ name: "Old", profilePic: "https://cdn.example.com/old.jpg" });
+
+        const res = await patchMe(token, { name: "  New Name  ", profilePic: "https://cdn.example.com/new.jpg" });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ name: "New Name", profilePic: "https://cdn.example.com/new.jpg" });
+    });
+
+    it("changes only the fields sent", async () => {
+        const { token } = await makeUser({ name: "Keep", profilePic: "https://cdn.example.com/a.jpg" });
+        const res = await patchMe(token, { name: "Renamed" });
+        expect(res.body).toMatchObject({ name: "Renamed", profilePic: "https://cdn.example.com/a.jpg" });
+    });
+
+    it("removes the photo when profilePic is null", async () => {
+        const { user, token } = await makeUser({ profilePic: "https://cdn.example.com/a.jpg" });
+
+        const res = await patchMe(token, { profilePic: null });
+
+        expect(res.status).toBe(200);
+        expect(res.body).not.toHaveProperty("profilePic");
+        expect((await User.findById(user._id).lean()).profilePic).toBeUndefined();
+    });
+
+    it.each([
+        ["an empty body", {}],
+        ["only unknown keys", { email: "x@example.com" }],
+        ["an empty name", { name: "   " }],
+        ["a name over 100 characters", { name: "a".repeat(101) }],
+        ["an http photo URL", { profilePic: "http://cdn.example.com/a.jpg" }],
+        ["a javascript: URL", { profilePic: "javascript:alert(1)" }],
+        ["a data: URL", { profilePic: "data:image/png;base64,AAAA" }],
+        ["a non-string name", { name: { $ne: null } }],
+    ])("rejects %s", async (_label, body) => {
+        const { token } = await makeUser();
+        const res = await patchMe(token, body);
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("can't change email or other fields", async () => {
+        const { user, token } = await makeUser({ email: "me@example.com" });
+        await patchMe(token, { name: "N", email: "evil@example.com", discoverable: true, level: "Advanced" }).expect(200);
+        const stored = await User.findById(user._id).lean();
+        expect(stored).toMatchObject({ email: "me@example.com", discoverable: false, level: "Beginner" });
+    });
+
+    it("requires authentication", async () => {
+        await request(app).patch("/api/v1/users/me").send({ name: "X" }).expect(401);
+    });
+});
+
 describe("PATCH /users/me/discoverable", () => {
     const patch = (token, body) =>
         request(app).patch("/api/v1/users/me/discoverable").set("authorization", `Bearer ${token}`).send(body);

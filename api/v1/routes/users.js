@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(auth);
 
 router.get("/me", UserController.getMe);
+router.patch("/me", validate(schemas.profile), UserController.updateProfile);
 router.delete("/me", UserController.deleteMe);
 router.patch("/me/level", validate(schemas.level), UserController.updateLevel);
 router.patch("/me/discoverable", validate(schemas.discoverable), UserController.updateDiscoverable);

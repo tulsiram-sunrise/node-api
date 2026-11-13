@@ -16,10 +16,25 @@ Do not open a public issue. Email the maintainer (the repository owner) with the
 | Personal data | Leaking emails or provider IDs | `select: false`; `toJSON` strips internal fields; nearby search projects public fields only |
 | Database | NoSQL operator injection; mass assignment | Joi with `stripUnknown`; Mongoose `sanitizeFilter` and `strictQuery` |
 | Availability | Brute force, flooding, large payloads, hung upstreams | Rate limits (300 overall and 20 on auth per 15 min per IP); 10 kB body cap; 5 s provider timeouts; 30 s request and 10 s header timeouts (slowloris); 5 s MongoDB `maxTimeMS` |
+| Incident response | Can't tell who signed in, from where, or what changed | Security event log (below) |
 | Error channel | Stack traces or internal messages exposed | A single error handler; generic 500 message; request ID for correlation |
 | Browser clients | Clickjacking, MIME sniffing, cross-origin abuse | helmet defaults; CORS allow-list (empty by default) |
 | Supply chain | Vulnerable or malicious packages; leaked secrets | Minimal dependencies; CI production audit; gitleaks scan of full history in CI; `npm ci --ignore-scripts` in the image |
 | Host | Container breakout impact | Non-root `node` user; minimal Alpine image |
+
+## Security event log
+
+`lib/securityLog.js` writes one `info` line per security-relevant event (GAP B4). Each line has a `securityEvent` field plus `requestId`, `ip` and `userAgent` (cut to 256 characters). Filter on `securityEvent` in the log platform and keep these lines for 90 days (set up with PLAN 6.1).
+
+| `securityEvent` | Extra fields |
+| --- | --- |
+| `auth.login` | `userId`, `provider`, `newUser` |
+| `auth.login_failed` | `provider`, `reason` (only for rejected tokens, not provider outages) |
+| `user.profile_updated` | `userId`, `fields` (names only, never values) |
+| `user.discoverable_changed` | `userId`, `discoverable` |
+| `user.deleted` | `userId`, `via: "self"`; or `via: "facebook_data_deletion"`, `confirmationCode`, `userFound` (no user ID, since the user asked for erasure) |
+
+Events never contain tokens, emails, names or coordinates. `ip` is personal data, so cover it in the privacy policy (B2). `ip` is only the client's address when `napi_trustProxy` matches the number of proxies in front of the app.
 
 ## Known gaps (tracked in PLAN.md)
 

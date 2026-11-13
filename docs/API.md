@@ -108,6 +108,19 @@ All routes in this section require authentication.
 
 Returns the current user.
 
+### `PATCH /users/me`
+
+```json
+{ "name": "Jane D.", "profilePic": "https://cdn.example.com/jane.jpg" }
+```
+
+Send at least one field. Only the fields you send change.
+
+- `name`: 1–100 characters, trimmed.
+- `profilePic`: an `https` URL of up to 2048 characters, or `null` to remove the photo. The server stores the URL and never fetches it.
+
+Both fields are copied from the provider only when the account is created, so later logins don't overwrite your edits. Email and other fields can't be changed here; unknown keys are dropped, and a body with no known keys returns `400 VALIDATION_ERROR`. Returns the updated user.
+
 ### `DELETE /users/me`
 
 Deletes the account. Returns `204`. The JWT keeps validating until it expires, but every user route then returns `404 USER_NOT_FOUND`.

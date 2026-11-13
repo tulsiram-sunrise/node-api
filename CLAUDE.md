@@ -28,7 +28,7 @@ Before you finish any code change, run `npm run lint && npm test`.
 - `index.js` is the process entry (config check → DB connect → listen → graceful shutdown). `app.js` has `createApp()`, which has no side effects.
 - `startup/` holds config validation, the DB connection plus global Mongoose settings, security middleware, and routes.
 - `middleware/` holds request context, Joi `validate`, `notFound` and the single `error` handler.
-- `lib/` holds the logger, `tokens` (JWT), `HttpError`, `geo` and `cursor` (encrypted pagination cursors). It never imports from `api/`.
+- `lib/` holds the logger, `tokens` (JWT), `HttpError`, `geo`, `cursor` (encrypted pagination cursors) and `securityLog`. It never imports from `api/`.
 - In `api/v1/`: `routes/` contain wiring only, `validators/` hold Joi, `controllers/` are thin, `services/` make outbound HTTP calls, and `models/` hold Mongoose.
 - `tests/*.test.js` use supertest against `createApp()`. `tests/helpers/db.js` starts mongodb-memory-server.
 
@@ -38,7 +38,7 @@ Before you finish any code change, run `npm run lint && npm test`.
 - Every input goes through `validate(schema, "body" | "query")` with bounded Joi schemas. Read query values from `req.validated.query` (Express 5 `req.query` is read-only).
 - Database writes are atomic (`$set`, `$setOnInsert`, upserts) with `{ returnDocument: "after", runValidators: true }`. Don't use `new: true`; it is deprecated in Mongoose 9.
 - Never return private fields. `toJSON` strips `provider`, `facebook`, `google` and `__v`. Nearby search returns only `discoverable: true` users (opt-in, ADR-011) and never returns coordinates or emails.
-- Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails. Never commit real secrets, even in tests or examples (CI runs gitleaks). Test fixtures use obviously fake values.
+- Use `lib/logger.js`, never `console.*`. Never log tokens, secrets or emails. Sign-ins, deletions and privacy changes also call `securityEvent()` from `lib/securityLog.js`. Never commit real secrets, even in tests or examples (CI runs gitleaks). Test fixtures use obviously fake values.
 - Mock providers at `api/v1/services/oauth` or `global.fetch` in tests. Never call real Facebook or Google.
 - New index: declare it in the model AND add a migration in `migrations/`. `tests/migrations.test.js` checks they match.
 - New config: add a default in `config/default.json`, an env mapping in `custom-environment-variables.json`, a line in `.env.example`, and validation in `startup/config.js` if it's required.

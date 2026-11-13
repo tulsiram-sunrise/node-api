@@ -70,7 +70,10 @@ userSchema.index({ location: "2dsphere" });
 
 /**
  * Atomically find or create the user for a verified social identity.
+ * Provider name and photo are only copied on insert, so later edits made with
+ * PATCH /users/me are not overwritten at the next login.
  * @param {{provider: string, providerId: string, email?: string, name?: string, profilePic?: string}} identity
+ * @returns {Promise<{ user: object, created: boolean }>}
  */
 userSchema.statics.upsertOAuthUser = async function (identity) {
     const { provider, providerId, email, name, profilePic } = identity;
@@ -91,14 +94,16 @@ userSchema.statics.upsertOAuthUser = async function (identity) {
                 returnDocument: "after",
                 runValidators: true,
                 setDefaultsOnInsert: true,
+                includeResultMetadata: true,
             }
         );
+    const unwrap = (result) => ({ user: result.value, created: !result.lastErrorObject?.updatedExisting });
 
     try {
-        return await run();
+        return unwrap(await run());
     } catch (err) {
         // Two concurrent first logins: the loser hits the unique index, so re-read.
-        if (err.code === DUPLICATE_KEY) return run();
+        if (err.code === DUPLICATE_KEY) return unwrap(await run());
         throw err;
     }
 };
