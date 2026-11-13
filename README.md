@@ -28,6 +28,7 @@ npm start
 | `npm run audit:prod` | Fail on high or critical advisories in production dependencies |
 | `npm run migrate:status` / `migrate:up` / `migrate:down` | Show, apply or roll back database migrations (`migrations/`) |
 | `npm run db:find-duplicates` | List users sharing a Facebook/Google ID; exits 1 if any |
+| `npm run db:seed` | Create 200 sample users round central London for trying nearby search locally. Options: `--lat`, `--lng`, `--radius` (miles), `--count`, `--seed`, `--reset`, `--remove`. Refuses production and non-local databases |
 
 Docker: `docker build -t node-api . && docker run -p 5000:5000 --env-file .env node-api`
 
