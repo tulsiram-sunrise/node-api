@@ -4,7 +4,7 @@ Last updated: 2026-11-07 · Branch: `upgrade/modernize-api` · Target version: 2
 
 ## Status
 
-v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4, 6.8 and 6.9 done; B14 of 6.7 done).
+v2.0.0 is merged into `master` but not released. Phases 1–4 and the code items of Phase 5.1 are done; Phase 5 still needs B2, B15 and the release decisions. Phase 6 code work has started (6.2, 6.4, 6.7, 6.8 and 6.9 done).
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -152,6 +152,7 @@ Release only when the Google client change is ready and duplicate accounts have 
 | Auth header | `x-auth-token` | `Authorization: Bearer` preferred; `x-auth-token` still accepted | Optional |
 | Sessions | v1 JWTs | v1 tokens have no `aud` claim and are rejected | Users sign in again |
 | Nearby visibility | Everyone with a location | Opt-in via `PATCH /users/me/discoverable` | Add a visibility toggle; existing users are hidden until they opt in |
+| Country | `currentCountryCode` (ObjectId of a reference record) | `countryCode`, an ISO 3166-1 alpha-2 string set with `PATCH /users/me` (B12); old values are removed | Stop reading `currentCountryCode`; let users pick a country if the app shows one |
 
 ### 5.3 Pre-release checklist
 
@@ -196,7 +197,7 @@ Basic P1 items from [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | 6.4 | (Done 2026-11-13) Cursor pagination for nearby search | B7 | 1 |
 | 6.5 | Structured `preferredTime` (`start`/`end` + `timeZone`) with migration | B11 | 1 |
 | 6.6 | Nearby matching on overlapping availability (`?matchTimes=true`) | B16 | 2 |
-| 6.7 | Data model cleanup: `currentCountryCode` decision (open), compound geo index (B14 done 2026-11-13) | B12, B14 | 0.5 |
+| 6.7 | (Done 2026-11-13) Data model cleanup: `currentCountryCode` replaced by ISO `countryCode` (B12), compound geo index (B14) | B12, B14 | 0.5 |
 | 6.8 | (Done 2026-11-13) `PATCH /users/me` for name and photo; security event log | B5, B4 | 1 |
 | 6.9 | (Done 2026-11-13) Load test with performance budget; seed script; coverage threshold. The load test peak of 50 rps is an assumption until the expected peak is agreed | B18, B27, B28 | 1.75 |
 
@@ -261,12 +262,13 @@ Pick items by product priority, or when their trigger in [GAP_ANALYSIS.md](GAP_A
 | Maximum nearby radius | 100 miles today | Keep unless product asks otherwise |
 | Do the restructure and modern standards at all (Phases 7–8) | Do both, or only 8.1–8.6 (tooling) | Do both before the codebase grows further. See [RESTRUCTURE.md](RESTRUCTURE.md) and [STANDARDS.md](STANDARDS.md) |
 | Formatter, test runner, JWT algorithm, v1 sunset | See [STANDARDS.md](STANDARDS.md) | ESLint + Prettier, Vitest, EdDSA, 6 months |
-| `currentCountryCode` | Drop it, or replace with an ISO country code | Replace with `countryCode` if any client uses it, else drop |
+| `currentCountryCode` | (Decided 2026-11-13: replace with ISO `countryCode`) Drop it, or replace with an ISO country code | Replace with `countryCode` if any client uses it, else drop |
 
 ## Change log
 
 | Date | Change |
 | --- | --- |
+| 2026-11-13 | Phase 6.7 B12 done (6.7 complete): `currentCountryCode` replaced by ISO 3166-1 alpha-2 `countryCode`, editable via `PATCH /users/me`; migration removes the old IDs |
 | 2026-11-13 | Phase 6.9 B18 done: `npm run loadtest`, fixed-rate load test with p95 < 200 ms budget at an assumed 50 rps; 6.9 complete |
 | 2026-11-13 | Phase 6.9 B27 done: `npm run db:seed` creates sample users round a point (idempotent, removable, local only) |
 | 2026-11-13 | Phase 6.9 B28 done: CI fails below the coverage thresholds (92/80/94/95) |

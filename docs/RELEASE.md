@@ -65,6 +65,8 @@ The users-index migration refuses to run while duplicate provider IDs exist (ste
 
 The users nearby-index migration (B14) builds the compound geo index, then drops the plain `location_2dsphere` one. For a moment the collection has two geo indexes. That is safe: v1 runs no geo queries, and v2 passes `key: "location"` to `$geoNear`, which otherwise refuses to choose between two indexes. Keep `key` in any new `$geoNear` call.
 
+The users country-code migration (B12) removes v1 `currentCountryCode` values, which are IDs into a `referencecodes` collection this service never had. If that collection exists in production, the migration stops, because the IDs might map to ISO codes. Either write a one-off script that sets `countryCode` from it, or confirm the data isn't needed and drop the collection. Then rerun `npm run migrate:up`. The removal can't be undone, so take the backup first (B15).
+
 Check: `npm run migrate:status` shows no `PENDING` rows.
 
 ## 5. Deploy

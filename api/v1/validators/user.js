@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { LEVELS, DAYS } = require("../models/user");
+const { COUNTRY_CODES } = require("../../../lib/countries");
 
 const level = Joi.object({
     level: Joi.string()
@@ -9,13 +10,19 @@ const level = Joi.object({
 
 // PATCH /users/me (B5). At least one field; null removes the photo. Only https
 // URLs, so clients never render javascript:/data: links. The server never
-// fetches the URL (no SSRF).
+// fetches the URL (no SSRF). countryCode is ISO 3166-1 alpha-2 (B12), any case
+// in, upper case stored; null removes it.
 const profile = Joi.object({
     name: Joi.string().trim().min(1).max(100),
     profilePic: Joi.string()
         .trim()
         .uri({ scheme: ["https"] })
         .max(2048)
+        .allow(null),
+    countryCode: Joi.string()
+        .trim()
+        .uppercase()
+        .valid(...COUNTRY_CODES)
         .allow(null),
 }).min(1);
 

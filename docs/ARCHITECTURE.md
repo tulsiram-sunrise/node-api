@@ -26,6 +26,7 @@ lib/                     Framework-free helpers
   httpError.js           HttpError(status, message, code, details)
   geo.js                 miles↔meters, {lat,lng} → GeoJSON Point
   cursor.js              Encrypted, tamper-proof pagination cursors (AES-256-GCM, key from jwt.secret via HKDF)
+  countries.js           ISO 3166-1 alpha-2 country codes (B12)
   securityLog.js         securityEvent(): one structured info line per security event (see SECURITY.md)
 api/
   routes.js              JSON body parser (10 kB) + /v1 mount
@@ -93,7 +94,7 @@ The API never sees passwords or provider refresh tokens, and it stores no provid
 | `discoverableSince` | Date | When the user last opted in (consent record); removed on opt-out |
 | `location` | GeoJSON Point | `[lng, lat]`; compound index `{ location: "2dsphere", discoverable: 1, level: 1 }` (B14), so nearby filters run inside the index; returned to the owner as `{ lat, lng }` |
 | `setting` | object | `distance` (1–100 miles), `preferredTime[] { day, timing }` |
-| `currentCountryCode` | ObjectId | Kept from v1; refers to `ReferenceCode`, which this service does not define |
+| `countryCode` | string | ISO 3166-1 alpha-2 (`lib/countries.js`), set by the user with `PATCH /users/me`; replaces v1 `currentCountryCode` (B12). Not in nearby results |
 | `createdAt`, `updatedAt` | Date | Mongoose timestamps |
 
 `toJSON` renames `_id` to `id` and removes `provider`, `facebook`, `google` and `__v`.

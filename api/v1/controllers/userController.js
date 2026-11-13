@@ -95,13 +95,15 @@ module.exports = {
         res.json(user);
     },
 
-    /** Edit name and photo (B5). `profilePic: null` removes the photo. */
+    /** Edit name, photo (B5) and country (B12). `null` removes the photo or country. */
     updateProfile: async (req, res) => {
         const $set = {};
         const $unset = {};
         if (req.body.name !== undefined) $set.name = req.body.name;
-        if (req.body.profilePic === null) $unset.profilePic = 1;
-        else if (req.body.profilePic !== undefined) $set.profilePic = req.body.profilePic;
+        for (const field of ["profilePic", "countryCode"]) {
+            if (req.body[field] === null) $unset[field] = 1;
+            else if (req.body[field] !== undefined) $set[field] = req.body[field];
+        }
 
         const user = await User.findByIdAndUpdate(req.auth.sub, { $set, $unset }, updateOptions);
         if (!user) throw userNotFound();
